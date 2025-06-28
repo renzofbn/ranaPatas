@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %} - Eventos{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-full">
+            <!-- Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title is-3">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                Eventos
+                            </h1>
+                            <p class="subtitle is-6">Listado de todos los eventos del sistema</p>
+                        </div>
+                    </div>
+                </div>
+                {% if session.is_admin %}
+                <div class="level-right">
+                    <div class="level-item">
+                        <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>Crear Evento</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="columns mb-5">
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Total Eventos</p>
+                        <p class="title is-3">{{ eventos|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Próximos</p>
+                        <p class="title is-3">{{ eventos|selectattr('fecha_inicio')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Este Mes</p>
+                        <p class="title is-3">{{ eventos|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de eventos -->
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th><abbr title="ID">ID</abbr></th>
+                                <th>Nombre del Evento</th>
+                                <th>Lugar</th>
+                                <th>Fecha de Inicio</th>
+                                <th>Creado por</th>
+                                <th>Fecha Creación</th>
+                                <th>Ver</th>
+                                {% if session.is_admin %}
+                                <th>Acciones</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for evento in eventos %}
+                            <tr>
+                                <td>{{ evento.id }}</td>
+                                <td>
+                                    <div class="media">
+                                        <div class="media-left">
+                                            <figure class="image is-32x32">
+                                                <span class="icon is-medium has-text-primary">
+                                                    <i class="fas fa-calendar-check fa-lg"></i>
+                                                </span>
+                                            </figure>
+                                        </div>
+                                        <div class="media-content">
+                                            <a href="{{ url_for('eventos.detalle', nombre_evento=evento.nombre.lower().replace(' ', '-')) }}" class="has-text-dark">
+                                                <strong>{{ evento.nombre }}</strong>
+                                            </a>
+                                            {% if evento.observaciones %}
+                                            <br>
+                                            <small class="has-text-grey">{{ evento.observaciones[:50] }}{% if evento.observaciones|length > 50 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </span>
+                                        <span>{{ evento.lugar }}</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if evento.fecha_inicio %}
+                                        <span class="tag is-info">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            {{ evento.fecha_inicio.strftime('%d/%m/%Y %H:%M') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-light">
+                                            <i class="fas fa-question mr-1"></i>
+                                            Sin fecha
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="media">
+                                        <div class="media-left">
+                                            <figure class="image is-24x24">
+                                                <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ evento.usuario_creador }}&background=3273dc&color=fff&size=24" alt="Avatar">
+                                            </figure>
+                                        </div>
+                                        <div class="media-content">
+                                            <small>{{ evento.usuario_creador }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <small class="has-text-grey">{{ evento.fecha_creacion.strftime('%d/%m/%Y') if evento.fecha_creacion else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <div class="buttons">
+                                    <a href="{{ url_for('eventos.detalle', nombre_evento=evento.nombre.lower().replace(' ', '-')) }}" class="button is-small is-primary">
+                                        <span class="icon is-small">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                    </a>
+                                    </div>
+                                </td>
+                                {% if session.is_admin %}
+                                <td>
+                                    <div class="buttons">
+                                        <a href="{{ url_for('eventos.editar', evento_id=evento.id) }}" class="button is-small is-info">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-edit"></i>
+                                            </span>
+                                        </a>
+                                        {% if session.logged_in and session.user_id == evento.id_usuario_creado %}
+                                        <form method="POST" action="{{ url_for('eventos.eliminar', evento_id=evento.id) }}" style="display: inline;">
+                                            <button type="submit" class="button is-small is-danger" 
+                                                    onclick="return confirm('¿Estás seguro de eliminar el evento {{ evento.nombre }}? Esta acción no se puede deshacer.')">
+                                                <span class="icon is-small">
+                                                    <i class="fas fa-trash"></i>
+                                                </span>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{% if session.is_admin %}8{% else %}7{% endif %}" class="has-text-centered">
+                                    <div class="content">
+                                        <p>
+                                            <i class="fas fa-calendar-times fa-3x has-text-grey-light"></i>
+                                        </p>
+                                        <p class="has-text-grey">No hay eventos registrados</p>
+                                        {% if session.is_admin %}
+                                        <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary mt-3">
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>Crear primer evento</span>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="notification is-info is-light">
+                <div class="content">
+                    <p><strong>Información sobre Eventos:</strong></p>
+                    <ul>
+                        <li>Todos los usuarios pueden ver la lista de eventos</li>
+                        {% if session.is_admin %}
+                        <li>Como administrador, puedes crear, editar y eliminar eventos</li>
+                        <li>Los eventos se muestran ordenados por fecha de creación</li>
+                        {% else %}
+                        <li>Solo los administradores pueden gestionar eventos</li>
+                        {% endif %}
+                        <li>Los eventos próximos se destacan con colores diferentes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+
+.media {
+    align-items: center;
+}
+
+.buttons {
+    flex-wrap: wrap;
+}
+
+.buttons .button {
+    margin-bottom: 0.25rem;
+}
+
+.icon-text {
+    align-items: center;
+}
+
+@media screen and (max-width: 768px) {
+    .buttons {
+        flex-direction: column;
+    }
+    
+    .buttons .button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .level {
+        display: block;
+    }
+    
+    .level-right {
+        margin-top: 1rem;
+    }
+}
+</style>
+{% endblock %}

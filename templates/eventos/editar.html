@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %} - Editar Evento{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-two-thirds">
+            <div class="box">
+                <div class="has-text-centered mb-5">
+                    <h1 class="title is-3">
+                        <i class="fas fa-calendar-edit mr-2"></i>
+                        Editar Evento
+                    </h1>
+                    <p class="subtitle is-6">Modifica la información del evento</p>
+                </div>
+
+                <form method="POST">
+                    <div class="field">
+                        <label class="label">Nombre del Evento *</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="nombre" value="{{ evento.nombre }}" placeholder="Ej: Torneo de Natación Juvenil" required maxlength="100">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-calendar-alt"></i>
+                            </span>
+                        </div>
+                        <p class="help">Máximo 100 caracteres</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Lugar</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="lugar" value="{{ evento.lugar }}" placeholder="Ej: Piscina Municipal" maxlength="150">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </span>
+                        </div>
+                        <p class="help">Opcional - Máximo 150 caracteres</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Fecha y Hora de Inicio</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="datetime-local" name="fecha_inicio" value="{{ evento.fecha_inicio }}">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-clock"></i>
+                            </span>
+                        </div>
+                        <p class="help">Opcional - Fecha y hora cuando inicia el evento</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Observaciones</label>
+                        <div class="control">
+                            <textarea class="textarea" name="observaciones" placeholder="Descripción adicional, requisitos, notas importantes..." rows="4">{{ evento.observaciones }}</textarea>
+                        </div>
+                        <p class="help">Opcional - Información adicional sobre el evento</p>
+                    </div>
+
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="submit">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Guardar Cambios</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('eventos.index') }}" class="button is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>Cancelar</span>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Información del evento -->
+            <div class="box">
+                <h2 class="title is-5">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Información del Evento
+                </h2>
+                <div class="content">
+                    <div class="columns">
+                        <div class="column">
+                            <strong>ID:</strong> {{ evento.id }}
+                        </div>
+                        <div class="column">
+                            <strong>Creado:</strong> Hace algunos días
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advertencias -->
+            <div class="notification is-warning is-light">
+                <div class="content is-small">
+                    <p><strong>Advertencias:</strong></p>
+                    <ul>
+                        <li>Cambiar el nombre del evento puede afectar las URLs existentes</li>
+                        <li>Verifica que la fecha y hora sean correctas</li>
+                        <li>Los cambios se aplicarán inmediatamente</li>
+                        <li>Asegúrate de que la información sea precisa</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.field {
+    margin-bottom: 1.5rem;
+}
+
+.help {
+    font-size: 0.75rem;
+}
+
+@media screen and (max-width: 768px) {
+    .field.is-grouped {
+        flex-direction: column;
+    }
+    
+    .field.is-grouped .control {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

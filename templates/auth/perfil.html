@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %} Mi Perfil {% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="box">
+          <h1 class="title">Mi Perfil</h1>
+          
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                  <button class="delete"></button>
+                  {{ message }}
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          
+          <div class="columns">
+            <div class="column is-4">
+              <figure class="image is-128x128">
+                <img class="is-rounded" src="/static/ranas.jpeg" alt="Avatar">
+              </figure>
+            </div>
+            <div class="column is-8">
+              <div class="content">
+                <h2 class="subtitle">Información Personal</h2>
+                <p><strong>Usuario:</strong> {{ user.usuario }}</p>
+                <p><strong>Correo:</strong> {{ user.correo }}</p>
+                <!-- <p><strong>ID:</strong> {{ user.id }}</p> -->
+                {% if user.is_admin %}
+                  <span class="tag is-danger is-medium">
+                    <span class="icon">
+                      <i class="fas fa-crown"></i>
+                    </span>
+                    <span>Administrador</span>
+                  </span>
+                {% else %}
+                  <span class="tag is-info is-medium">
+                    <span class="icon">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <span>Usuario</span>
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <div class="buttons">
+            <!-- <button class="button is-primary">
+              <span class="icon">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>Editar Perfil</span>
+            </button> -->
+            <!-- <button class="button is-warning">
+              <span class="icon">
+                <i class="fas fa-key"></i>
+              </span>
+              <span>Cambiar Contraseña</span>
+            </button> -->
+            <a class="button is-danger" href="/auth/logout">
+              <span class="icon">
+                <i class="fas fa-sign-out-alt"></i>
+              </span>
+              <span>Cerrar Sesión</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Añadir funcionalidad para cerrar notificaciones
+  (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+    const $notification = $delete.parentNode;
+    $delete.addEventListener('click', () => {
+      $notification.parentNode.removeChild($notification);
+    });
+  });
+});
+</script>
+{% endblock %}

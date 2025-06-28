@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDR - Patas De Rana -{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="icon" type="image/x-icon" href="{{url_for('static', filename='favicon.ico')}}" />
+</head>
+
+<body>
+  <nav class="navbar has-shadow is-white" role="navigation" aria-label="main navigation">
+
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img src="{{url_for('static', filename='Logo_PDR_Azul_Cuadrado.jpg')}}" style="max-height: 40px;">
+      </a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navbarBasicExample" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/">
+          Inicio
+        </a>
+        <a class="navbar-item" href="/programa">
+          Programa
+        </a>
+        <a class="navbar-item" href="/inscripcion">
+          Inscripcion
+        </a>
+        <a class="navbar-item" href="/eventos">
+          Eventos
+        </a>
+      </div>
+
+      <div class="navbar-end">
+        <div class="navbar-item">
+          {% if session.logged_in %}
+            <div class="navbar-item has-dropdown is-hoverable">
+              <a class="navbar-link">
+                Hola, {{ session.usuario }}
+              </a>
+              <div class="navbar-dropdown is-right">
+                <a class="navbar-item" href="/perfil">
+                  <span class="icon">
+                    <i class="fas fa-user"></i>
+                  </span>
+                  <span>Mi Perfil</span>
+                </a>
+                {% if session.is_admin %}
+                <a class="navbar-item" href="/users">
+                  <span class="icon">
+                    <i class="fas fa-users"></i>
+                  </span>
+                  <span>Usuarios</span>
+                </a>
+                {% endif %}
+                <hr class="navbar-divider">
+                <a class="navbar-item" href="/auth/logout">
+                  <span class="icon">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </span>
+                  <span>Cerrar Sesión</span>
+                </a>
+              </div>
+            </div>
+          {% else %}
+            <div class="buttons">
+              <a class="button is-primary" href="/auth/login">
+                <strong>Acceder</strong>
+              </a>
+              <a class="button is-link" href="/auth/register">
+                Registrarse
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </nav>
+
+  {% block content %}
+  {% endblock %}
+
+  <footer class="footer">
+    <div class="container">
+
+      <!-- Example of how to center the text -->
+      <div class="content has-text-centered">
+        <p>PDR ¡Nada, no hay límite!</p>
+        <p>©Copyright 2025 Todos los derechos reservados.</p>
+        <p>La siguiente pagina es informativa, toda informacion oficial sera publicada en nuestras redes sociales:
+        <a href="https://www.facebook.com/teampdr/">Facebook</a>,
+        <a href="https://www.tiktok.com/@patasderanaperu/">TikTok</a> e
+        <a href="https://www.instagram.com/team_patas_de_rana/">Instagram</a></p>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // Get all "navbar-burger" elements
+      const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+
+      // Add a click event on each of them
+      $navbarBurgers.forEach(el => {
+        el.addEventListener('click', () => {
+
+          // Get the target from the "data-target" attribute
+          const target = el.dataset.target;
+          const $target = document.getElementById(target);
+
+          // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+          el.classList.toggle('is-active');
+          $target.classList.toggle('is-active');
+
+        });
+      });
+
+    });
+  </script>
+</body>
+
+</html>

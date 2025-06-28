@@ -1,0 +1,829 @@
+{% extends "base.html" %}
+
+{% block title %} - {{ participante.nombre }} | {{ evento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-10">
+            <!-- Breadcrumb navigation -->
+            <nav class="breadcrumb mb-4" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('eventos.index') }}">Eventos</a></li>
+                    <li><a href="{{ url_for('eventos.detalle', nombre_evento=evento.nombre | replace(' ', '-') | lower) }}">{{ evento.nombre }}</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">{{ participante.codigo }} - {{ participante.nombre }}</a></li>
+                </ul>
+            </nav>
+
+            <!-- Header del participante -->
+            <div class="box">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-64x64">
+                                        {% set avatar_color = '48c774' if participante.estado == 'completado' else ('ff3860' if participante.estado == 'en_progreso' else '3273dc') %}
+                                        <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.nombre | urlencode }}&background={{ avatar_color }}&color=fff&size=64" alt="Avatar">
+                                    </figure>
+                                </div>
+                                <div class="media-content">
+                                    <h1 class="title is-2">
+                                        <strong>{{ participante.codigo }}</strong> - {{ participante.nombre }}
+                                    </h1>
+                                    <p class="subtitle is-5 has-text-grey">
+                                        <i class="fas fa-calendar-alt mr-1"></i>
+                                        Participante en <strong>{{ evento.nombre }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            {% if participante.estado == 'completado' %}
+                                <span class="tag is-success is-large">
+                                    <i class="fas fa-check mr-1"></i>
+                                    Completado
+                                </span>
+                            {% elif participante.estado == 'en_progreso' %}
+                                <span class="tag is-warning is-large">
+                                    <i class="fas fa-running mr-1"></i>
+                                    En Progreso
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-large">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Pendiente
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <!-- Información principal -->
+                <div class="column is-8">
+                    <!-- Tiempos y progreso -->
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-stopwatch mr-2"></i>
+                            Tiempos y Progreso
+                        </h2>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="box has-text-centered {% if participante.tiempo_inicio %}has-background-info-dark has-text-white{% else %}has-background-grey-lighter{% endif %}">
+                                    <p class="heading {% if participante.tiempo_inicio %}has-text-white-ter{% endif %}">Tiempo de Inicio</p>
+                                    {% if participante.tiempo_inicio %}
+                                        <p class="title is-4 has-text-white">
+                                            <i class="fas fa-play mr-2"></i>
+                                            {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
+                                        </p>
+                                        <p class="subtitle is-6 has-text-white-ter">
+                                            {{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}
+                                        </p>
+                                    {% else %}
+                                        <p class="title is-4 has-text-grey">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            No iniciado
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="column">
+                                <div class="box has-text-centered {% if participante.tiempo_llegada %}has-background-success-dark has-text-white{% else %}has-background-grey-lighter{% endif %}">
+                                    <p class="heading {% if participante.tiempo_llegada %}has-text-white-ter{% endif %}">Tiempo de Llegada</p>
+                                    {% if participante.tiempo_llegada %}
+                                        <p class="title is-4 has-text-white">
+                                            <i class="fas fa-flag-checkered mr-2"></i>
+                                            {{ participante.tiempo_llegada.strftime('%H:%M:%S') }}
+                                        </p>
+                                        <p class="subtitle is-6 has-text-white-ter">
+                                            {{ participante.tiempo_llegada.strftime('%d/%m/%Y') }}
+                                        </p>
+                                    {% else %}
+                                        <p class="title is-4 has-text-grey">
+                                            <i class="fas fa-hourglass-half mr-2"></i>
+                                            {% if participante.estado == 'en_progreso' %}En progreso{% else %}Pendiente{% endif %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cronómetro Interactivo / Resultado Final -->
+                        <div class="box has-text-centered {% if participante.tiempo_total_str %}has-background-success-dark{% else %}has-background-primary-dark{% endif %} has-text-white" id="cronometro-container">
+                            <p class="heading has-text-white-ter">
+                                <i class="fas fa-{% if participante.tiempo_total_str %}trophy{% else %}stopwatch{% endif %} mr-2"></i>
+                                {% if participante.tiempo_total_str %}
+                                    Tiempo Final Registrado
+                                {% else %}
+                                    Cronómetro Interactivo
+                                {% endif %}
+                            </p>
+                            
+                            {% if participante.tiempo_total_str %}
+                            <!-- Mostrar resultado final -->
+                            <div class="tiempo-final-display mb-4">
+                                <div class="has-text-centered">
+                                    <div class="title is-1 has-text-white mb-2">
+                                        <i class="fas fa-flag-checkered mr-3"></i>
+                                        {{ participante.tiempo_total_str }}
+                                    </div>
+                                    <div class="subtitle is-4 has-text-white-ter">
+                                        <i class="fas fa-calendar-check mr-2"></i>
+                                        Completado oficialmente
+                                    </div>
+                                    <div class="tags has-addons is-centered mt-4">
+                                        <span class="tag is-large is-success">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            FINALIZADO
+                                        </span>
+                                        <span class="tag is-large is-dark">
+                                            {{ participante.tiempo_llegada.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <!-- Display del cronómetro -->
+                            <div class="cronometro-display mb-4">
+                                <div class="cronometro-circle">
+                                    <svg class="cronometro-svg" width="200" height="200" viewBox="0 0 200 200">
+                                        <!-- Círculo de fondo -->
+                                        <circle cx="100" cy="100" r="90" stroke="rgba(255,255,255,0.2)" stroke-width="8" fill="none"/>
+                                        <!-- Círculo de progreso -->
+                                        <circle id="progreso-circle" cx="100" cy="100" r="90" stroke="#48c774" stroke-width="8" fill="none"
+                                                stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="565.48"
+                                                transform="rotate(-90 100 100)" style="transition: stroke-dashoffset 0.3s ease"/>
+                                    </svg>
+                                    <div class="cronometro-time">
+                                        <span id="cronometro-tiempo" class="title is-4 has-text-white">00:00:00</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="cronometro-status mt-3" >
+                                    <span class="tag is-large" id="cronometro-status" style="background: #48c774 !important;">
+                                        <i class="fas fa-pause mr-1"></i>
+                                        Listo para iniciar
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Controles del cronómetro -->
+                            {% if not participante.tiempo_total_str and session.is_admin %}
+                            <div class="buttons is-centered mb-4">
+                                {% if not participante.tiempo_inicio %}
+                                <button class="button is-success is-large" id="btn-iniciar" onclick="iniciarCronometro()">
+                                    <span class="icon">
+                                        <i class="fas fa-play"></i>
+                                    </span>
+                                    <span>Iniciar Cronómetro</span>
+                                </button>
+                                {% else %}
+                                <button class="button is-info is-large" id="btn-finalizar" onclick="finalizarCronometro()">
+                                    <span class="icon">
+                                        <i class="fas fa-flag-checkered"></i>
+                                    </span>
+                                    <span>Finalizar Cronómetro</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% elif not participante.tiempo_total_str %}
+                            <div class="notification is-info is-light">
+                                <p class="has-text-weight-semibold">
+                                    <i class="fas fa-lock mr-2"></i>
+                                    Solo los administradores pueden controlar el cronómetro
+                                </p>
+                            </div>
+                            {% endif %}
+
+                            <!-- Información adicional -->
+                            <div class="mt-4">
+                                {% if participante.tiempo_total_str %}
+                                    <div class="notification is-success is-light">
+                                        <p class="has-text-weight-semibold">
+                                            <i class="fas fa-trophy mr-2"></i>
+                                            Tiempo Final Oficial: {{ participante.tiempo_total_str }}
+                                        </p>
+                                    </div>
+                                {% elif participante.tiempo_transcurrido %}
+                                    <!-- <div class="notification is-info is-light">
+                                        <p class="has-text-weight-semibold">
+                                            <i class="fas fa-database mr-2"></i>
+                                            Tiempo en Base de Datos: {{ participante.tiempo_transcurrido }}
+                                        </p>
+                                    </div> -->
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de gestión -->
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-users-cog mr-2"></i>
+                            Información de Gestión
+                        </h2>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Agregado por</label>
+                                    <div class="box">
+                                        <div class="media">
+                                            <div class="media-left">
+                                                <figure class="image is-32x32">
+                                                    <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.agregado_por or 'Usuario' }}&background=3273dc&color=fff&size=32" alt="Avatar">
+                                                </figure>
+                                            </div>
+                                            <div class="media-content">
+                                                <p class="title is-6">{{ participante.agregado_por or 'N/A' }}</p>
+                                                <p class="subtitle is-7 has-text-grey">
+                                                    {% if participante.usuario_agregado_en %}
+                                                        {{ participante.usuario_agregado_en.strftime('%d/%m/%Y a las %H:%M') }}
+                                                    {% else %}
+                                                        Fecha no disponible
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if participante.iniciado_por %}
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Tiempo iniciado por</label>
+                                    <div class="box">
+                                        <div class="media">
+                                            <div class="media-left">
+                                                <figure class="image is-32x32">
+                                                    <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.iniciado_por }}&background=48c774&color=fff&size=32" alt="Avatar">
+                                                </figure>
+                                            </div>
+                                            <div class="media-content">
+                                                <p class="title is-6">{{ participante.iniciado_por }}</p>
+                                                <p class="subtitle is-7 has-text-grey">Inició el cronómetro</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if participante.terminado_por %}
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Tiempo terminado por</label>
+                                    <div class="box">
+                                        <div class="media">
+                                            <div class="media-left">
+                                                <figure class="image is-32x32">
+                                                    <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.terminado_por }}&background=ff3860&color=fff&size=32" alt="Avatar">
+                                                </figure>
+                                            </div>
+                                            <div class="media-content">
+                                                <p class="title is-6">{{ participante.terminado_por }}</p>
+                                                <p class="subtitle is-7 has-text-grey">Terminó el cronómetro</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="column is-4">
+                    <!-- Información del evento -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            Evento
+                        </h3>
+                        <div class="content">
+                            <p><strong>{{ evento.nombre }}</strong></p>
+                            <p class="has-text-grey">
+                                <i class="fas fa-map-marker-alt mr-1"></i>
+                                {{ evento.lugar }}
+                            </p>
+                            {% if evento.fecha_inicio %}
+                            <p class="has-text-grey">
+                                <i class="fas fa-clock mr-1"></i>
+                                {{ evento.fecha_inicio.strftime('%d/%m/%Y a las %H:%M') }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas del evento -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-chart-bar mr-2"></i>
+                            Estadísticas del Evento
+                        </h3>
+                        <div class="content">
+                            <div class="level">
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading">Total</p>
+                                        <p class="title is-4">{{ stats.total }}</p>
+                                    </div>
+                                </div>
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading has-text-success">Completados</p>
+                                        <p class="title is-4 has-text-success">{{ stats.completados }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="level">
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading has-text-warning">En Progreso</p>
+                                        <p class="title is-4 has-text-warning">{{ stats.en_progreso }}</p>
+                                    </div>
+                                </div>
+                                <div class="level-item has-text-centered">
+                                    <div>
+                                        <p class="heading has-text-danger">Pendientes</p>
+                                        <p class="title is-4 has-text-danger">{{ stats.pendientes }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-bolt mr-2"></i>
+                            Acciones
+                        </h3>
+                        <div class="buttons">
+                            <a href="{{ url_for('eventos.detalle', nombre_evento=evento.nombre | replace(' ', '-') | lower) }}" class="button is-info is-fullwidth">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>Volver al evento</span>
+                            </a>
+                            {% if session.is_admin %}
+                            <button class="button is-danger is-fullwidth" 
+                                    data-nombre="{{ participante.nombre }}" 
+                                    data-id="{{ participante.id }}" 
+                                    onclick="confirmarEliminar(this.dataset.nombre, this.dataset.id)">
+                                <span class="icon">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                                <span>Eliminar Participante</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.box {
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+
+.media {
+    align-items: center;
+}
+
+.level-item .title {
+    margin-bottom: 0;
+}
+
+@media screen and (max-width: 768px) {
+    .level {
+        display: block;
+    }
+    
+    .level-right {
+        margin-top: 1rem;
+    }
+    
+    .columns {
+        display: block;
+    }
+}
+
+/* Estilos para el cronómetro interactivo */
+.cronometro-circle {
+    position: relative;
+    display: inline-block;
+}
+
+.cronometro-svg {
+    transform: rotate(-90deg);
+}
+
+.cronometro-time {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.cronometro-display {
+    margin: 0 auto;
+}
+
+#cronometro-status {
+    transition: all 0.3s ease;
+}
+
+/* Estilos para el resultado final */
+.tiempo-final-display {
+    padding: 2rem 1rem;
+}
+
+.tiempo-final-display .title {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    animation: pulse-success 2s infinite;
+}
+
+@keyframes pulse-success {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.tags.has-addons {
+    justify-content: center;
+}
+
+/* Responsive para móviles con cronómetro */
+@media (max-width: 768px) {
+    .cronometro-svg {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .cronometro-time .title {
+        font-size: 1.5rem !important;
+    }
+    
+    .buttons .button {
+        font-size: 0.9rem;
+    }
+    
+    .tiempo-final-display .title {
+        font-size: 2rem !important;
+    }
+    
+    .tiempo-final-display .subtitle {
+        font-size: 1.25rem !important;
+    }
+}
+</style>
+
+<script>
+// Variables del cronómetro
+let cronometroInterval;
+let tiempoInicial = null; // timestamp del backend
+let tiempoActual = 0; // tiempo actual en segundos
+let cronometroActivo = false;
+
+// Elementos del DOM
+const displayTiempo = document.getElementById('cronometro-tiempo');
+const statusElement = document.getElementById('cronometro-status');
+const btnIniciar = document.getElementById('btn-iniciar');
+const btnFinalizar = document.getElementById('btn-finalizar');
+const progresoCircle = document.getElementById('progreso-circle');
+
+// Configuración del círculo de progreso
+const circunferencia = 2 * Math.PI * 90; // radio = 90
+const tiempoMaximo = 3600; // 1 hora en segundos para completar el círculo
+
+// Inicializar cronómetro al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Solo inicializar cronómetro si no hay tiempo total registrado
+    {% if not participante.tiempo_total_str %}
+    // Verificar si ya hay un tiempo de inicio en el backend
+    {% if participante.tiempo_inicio %}
+    const tiempoInicioBD = new Date('{{ participante.tiempo_inicio.isoformat() }}');
+    tiempoInicial = tiempoInicioBD.getTime();
+    cronometroActivo = true;
+    
+    // Calcular tiempo transcurrido desde el backend
+    actualizarTiempoDesdeInicio();
+    
+    // Iniciar el cronómetro
+    iniciarContador();
+    
+    // Actualizar estado visual
+    actualizarStatus('running', 'En progreso desde BD');
+    {% else %}
+    // Si no hay tiempo de inicio, mostrar estado inicial
+    actualizarStatus('stopped', 'Listo para iniciar');
+    {% endif %}
+    
+    actualizarDisplay();
+    actualizarProgreso();
+    {% else %}
+    // Si ya hay tiempo total registrado, no inicializar cronómetro
+    console.log('Participante ya tiene tiempo final registrado: {{ participante.tiempo_total_str }}');
+    {% endif %}
+});
+
+// Función para iniciar el cronómetro
+function iniciarCronometro() {
+    {% if not session.is_admin %}
+    mostrarNotificacionTemporal('error', 'Solo los administradores pueden controlar el cronómetro');
+    return;
+    {% endif %}
+    
+    // Deshabilitar botón para evitar doble click
+    if (btnIniciar) {
+        btnIniciar.disabled = true;
+        btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-pulse"></i></span><span>Iniciando...</span>';
+    }
+    
+    // Hacer llamada al backend para registrar el inicio
+    fetch(`/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/participante/{{ participante.codigo }}/iniciar-cronometro`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // El backend devuelve el timestamp de inicio
+            tiempoInicial = new Date(data.tiempo_inicio).getTime();
+            cronometroActivo = true;
+            
+            // Calcular tiempo transcurrido
+            actualizarTiempoDesdeInicio();
+            
+            // Iniciar contador
+            iniciarContador();
+            
+            // Actualizar interfaz
+            if (btnIniciar) {
+                btnIniciar.style.display = 'none';
+            }
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'inline-flex';
+            }
+            
+            actualizarStatus('running', 'En progreso');
+            mostrarNotificacionTemporal('success', `¡Cronómetro iniciado! Registrado por ${data.iniciado_por}`);
+        } else {
+            // Error en el backend
+            if (btnIniciar) {
+                btnIniciar.disabled = false;
+                btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Iniciar Cronómetro</span>';
+            }
+            mostrarNotificacionTemporal('error', data.error || 'Error al iniciar cronómetro');
+        }
+    })
+    .catch(error => {
+        // Error de conexión
+        if (btnIniciar) {
+            btnIniciar.disabled = false;
+            btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Iniciar Cronómetro</span>';
+        }
+        mostrarNotificacionTemporal('error', 'Error de conexión al iniciar cronómetro');
+        console.error('Error:', error);
+    });
+}
+
+// Función para finalizar el cronómetro
+function finalizarCronometro() {
+    {% if not session.is_admin %}
+    mostrarNotificacionTemporal('error', 'Solo los administradores pueden finalizar el cronómetro');
+    return;
+    {% endif %}
+    
+    // Deshabilitar botón para evitar doble click
+    if (btnFinalizar) {
+        btnFinalizar.disabled = true;
+        btnFinalizar.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-pulse"></i></span><span>Finalizando...</span>';
+    }
+    
+    // Hacer llamada al backend para registrar la finalización
+    fetch(`/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/participante/{{ participante.codigo }}/finalizar-cronometro`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Finalización exitosa en el backend
+            detenerContador();
+            cronometroActivo = false;
+            
+            // Actualizar interfaz
+            if (btnIniciar) btnIniciar.disabled = true;
+            if (btnFinalizar) {
+                btnFinalizar.innerHTML = '<span class="icon"><i class="fas fa-flag-checkered"></i></span><span>Finalizar Cronómetro</span>';
+                btnFinalizar.disabled = true;
+            }
+            
+            actualizarStatus('finished', 'Finalizado oficialmente');
+            mostrarNotificacionFinalizado(data.tiempo_total, data.terminado_por);
+            
+            console.log('Tiempo final registrado:', data.tiempo_total);
+            
+            // Opcional: Recargar página después de 3 segundos para mostrar datos actualizados
+            setTimeout(() => {
+                if (confirm('¿Deseas recargar la página para ver los datos actualizados?')) {
+                    location.reload();
+                }
+            }, 3000);
+        } else {
+            // Error en el backend
+            if (btnFinalizar) {
+                btnFinalizar.disabled = false;
+                btnFinalizar.innerHTML = '<span class="icon"><i class="fas fa-flag-checkered"></i></span><span>Finalizar Cronómetro</span>';
+            }
+            mostrarNotificacionTemporal('error', data.error || 'Error al finalizar cronómetro');
+        }
+    })
+    .catch(error => {
+        // Error de conexión
+        if (btnFinalizar) {
+            btnFinalizar.disabled = false;
+            btnFinalizar.innerHTML = '<span class="icon"><i class="fas fa-flag-checkered"></i></span><span>Finalizar Cronómetro</span>';
+        }
+        mostrarNotificacionTemporal('error', 'Error de conexión al finalizar cronómetro');
+        console.error('Error:', error);
+    });
+}
+
+// Función para iniciar el contador en tiempo real
+function iniciarContador() {
+    detenerContador(); // Limpiar cualquier interval anterior
+    
+    cronometroInterval = setInterval(() => {
+        if (tiempoInicial && cronometroActivo) {
+            actualizarTiempoDesdeInicio();
+            actualizarDisplay();
+            actualizarProgreso();
+        }
+    }, 1000);
+}
+
+// Función para detener el contador
+function detenerContador() {
+    if (cronometroInterval) {
+        clearInterval(cronometroInterval);
+        cronometroInterval = null;
+    }
+}
+
+// Función para calcular el tiempo transcurrido desde el inicio en el backend
+function actualizarTiempoDesdeInicio() {
+    if (tiempoInicial) {
+        tiempoActual = Math.floor((Date.now() - tiempoInicial) / 1000);
+    }
+}
+
+// Función para actualizar el display del tiempo
+function actualizarDisplay() {
+    const tiempoFormateado = formatearTiempo(tiempoActual);
+    
+    if (displayTiempo) {
+        displayTiempo.textContent = tiempoFormateado;
+    }
+    
+    // Actualizar también el elemento de tiempo transcurrido si existe
+    const elementoTiempoTranscurrido = document.getElementById('tiempo-transcurrido');
+    if (elementoTiempoTranscurrido) {
+        elementoTiempoTranscurrido.textContent = tiempoFormateado;
+    }
+}
+
+// Función para actualizar el círculo de progreso
+function actualizarProgreso() {
+    if (!progresoCircle) return;
+    
+    const progreso = Math.min(tiempoActual / tiempoMaximo, 1);
+    const offset = circunferencia - (progreso * circunferencia);
+    
+    progresoCircle.style.strokeDashoffset = offset;
+    
+    // Cambiar color según el progreso
+    if (progreso < 0.5) {
+        progresoCircle.style.stroke = '#48c774'; // Verde
+    } else if (progreso < 0.8) {
+        progresoCircle.style.stroke = '#ffdd57'; // Amarillo
+    } else {
+        progresoCircle.style.stroke = '#f14668'; // Rojo
+    }
+}
+
+// Función para actualizar el estado visual
+function actualizarStatus(tipo, texto) {
+    if (!statusElement) return;
+    
+    // Limpiar clases anteriores
+    statusElement.className = 'tag is-large';
+    
+    // Agregar nueva clase y icono según el tipo
+    switch(tipo) {
+        case 'running':
+            statusElement.classList.add('is-success');
+            statusElement.innerHTML = '<i class="fas fa-play mr-1"></i>' + texto;
+            break;
+        case 'stopped':
+            statusElement.classList.add('is-light');
+            statusElement.innerHTML = '<i class="fas fa-stop mr-1"></i>' + texto;
+            break;
+        case 'finished':
+            statusElement.classList.add('is-info');
+            statusElement.innerHTML = '<i class="fas fa-flag-checkered mr-1"></i>' + texto;
+            break;
+    }
+}
+
+// Función auxiliar para formatear tiempo
+function formatearTiempo(segundosTotal) {
+    const horas = Math.floor(segundosTotal / 3600);
+    const minutos = Math.floor((segundosTotal % 3600) / 60);
+    const segundos = segundosTotal % 60;
+    
+    return String(horas).padStart(2, '0') + ':' +
+           String(minutos).padStart(2, '0') + ':' +
+           String(segundos).padStart(2, '0');
+}
+
+// Función para mostrar notificación de finalizado
+function mostrarNotificacionFinalizado(tiempoTotal, terminadoPor) {
+    const notificacion = document.createElement('div');
+    notificacion.className = 'notification is-success is-light';
+    notificacion.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove()"></button>
+        <strong><i class="fas fa-check-circle mr-2"></i>¡Cronómetro Finalizado Oficialmente!</strong><br>
+        Tiempo registrado: <strong>${tiempoTotal}</strong><br>
+        Finalizado por: <strong>${terminadoPor}</strong><br>
+        <small>El tiempo ha sido guardado en la base de datos.</small>
+    `;
+    
+    const cronometroContainer = document.getElementById('cronometro-container');
+    if (cronometroContainer) {
+        cronometroContainer.insertBefore(notificacion, cronometroContainer.firstChild);
+    }
+    
+    setTimeout(() => {
+        if (notificacion.parentElement) {
+            notificacion.remove();
+        }
+    }, 15000);
+}
+
+// Función para mostrar notificaciones temporales
+function mostrarNotificacionTemporal(tipo, mensaje) {
+    const notificacion = document.createElement('div');
+    const tipoClass = tipo === 'success' ? 'is-success' : (tipo === 'error' ? 'is-danger' : 'is-info');
+    const icono = tipo === 'success' ? 'fa-check-circle' : (tipo === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle');
+    
+    notificacion.className = `notification ${tipoClass} is-light`;
+    notificacion.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove()"></button>
+        <strong><i class="fas ${icono} mr-2"></i>${mensaje}</strong>
+    `;
+    
+    const cronometroContainer = document.getElementById('cronometro-container');
+    if (cronometroContainer) {
+        cronometroContainer.insertBefore(notificacion, cronometroContainer.firstChild);
+    }
+    
+    setTimeout(() => {
+        if (notificacion.parentElement) {
+            notificacion.remove();
+        }
+    }, 5000);
+}
+
+// Función para confirmar eliminación de participante
+function confirmarEliminar(nombreParticipante, participanteId) {
+    if (confirm(`¿Estás seguro de eliminar al participante ${nombreParticipante}? Esta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/eliminar-participante/${participanteId}`;
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

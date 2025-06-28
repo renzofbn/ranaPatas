@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %} Iniciar Sesión {% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+        <div class="box">
+          <h2 class="title is-4 has-text-centered">Iniciar Sesión</h2>
+          
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                  <button class="delete"></button>
+                  {{ message }}
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          
+          <form method="POST">
+            <div class="field">
+              <div class="control">
+                <input class="input" type="text" name="usuario_o_correo" placeholder="Usuario o Email" required>
+              </div>
+            </div>
+            <div class="field">
+              <div class="control">
+                <input class="input" type="password" name="contrasena" placeholder="Contraseña" required>
+              </div>
+            </div>
+            <div class="field">
+              <button class="button is-primary is-fullwidth" type="submit">Entrar</button>
+            </div>
+          </form>
+          <div class="has-text-centered mt-4">
+            <span>¿No tienes cuenta? <a href="/auth/register">Regístrate</a></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Añadir funcionalidad para cerrar notificaciones
+  (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+    const $notification = $delete.parentNode;
+    $delete.addEventListener('click', () => {
+      $notification.parentNode.removeChild($notification);
+    });
+  });
+  
+  // Auto-cerrar notificaciones después de 5 segundos
+  setTimeout(() => {
+    (document.querySelectorAll('.notification') || []).forEach(($notification) => {
+      $notification.style.opacity = '0';
+      setTimeout(() => {
+        if ($notification.parentNode) {
+          $notification.parentNode.removeChild($notification);
+        }
+      }, 300);
+    });
+  }, 5000);
+});
+</script>
+{% endblock %}

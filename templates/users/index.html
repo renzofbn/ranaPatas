@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %} - Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-full">
+            <!-- Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title is-3">
+                                <i class="fas fa-users mr-2"></i>
+                                Gestión de Usuarios
+                            </h1>
+                            <p class="subtitle is-6">Administra todos los usuarios del sistema</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="columns mb-5">
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Total Usuarios</p>
+                        <p class="title is-3">{{ users|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Administradores</p>
+                        <p class="title is-3">{{ users|selectattr('is_admin')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Usuarios Regulares</p>
+                        <p class="title is-3">{{ (users|length) - (users|selectattr('is_admin')|list|length) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de usuarios -->
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th><abbr title="ID">ID</abbr></th>
+                                <th>Usuario</th>
+                                <th>Correo Electrónico</th>
+                                <th>Tipo</th>
+                                <th>Fecha Registro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>
+                                    <div class="media">
+                                        <div class="media-left">
+                                            <figure class="image is-32x32">
+                                                <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ user.usuario }}&background=3273dc&color=fff&size=32" alt="Avatar">
+                                            </figure>
+                                        </div>
+                                        <div class="media-content">
+                                            <strong>{{ user.usuario }}</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ user.correo }}</td>
+                                <td>
+                                    {% if user.is_admin %}
+                                        <span class="tag is-danger">
+                                            <i class="fas fa-crown mr-1"></i>
+                                            Administrador
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-info">
+                                            <i class="fas fa-user mr-1"></i>
+                                            Usuario
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.fecha_registro }}</td>
+                                <td>
+                                    <div class="buttons">
+ 
+                                        <!-- Botón Toggle Admin -->
+                                        {% if session.user_id != user.id %}
+                                        <form method="POST" action="{{ url_for('users.toggle_admin', user_id=user.id) }}" style="display: inline;">
+                                            {% if user.is_admin %}
+                                                <button type="submit" class="button is-small is-warning" 
+                                                        onclick="return confirm('¿Estás seguro de quitar los permisos de administrador a {{ user.usuario }}?')">
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-user-minus"></i>
+                                                    </span>
+                                                    <span>Quitar Admin</span>
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" class="button is-small is-success"
+                                                        onclick="return confirm('¿Estás seguro de hacer administrador a {{ user.usuario }}?')">
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </span>
+                                                    <span>Hacer Admin</span>
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                        {% endif %}
+                                        
+                                        <!-- Botón Eliminar -->
+                                        {% if session.user_id != user.id %}
+                                        <form method="POST" action="{{ url_for('users.delete', user_id=user.id) }}" style="display: inline;">
+                                            <button type="submit" class="button is-small is-danger" 
+                                                    onclick="return confirm('¿Estás seguro de eliminar al usuario {{ user.usuario }}? Esta acción no se puede deshacer.')">
+                                                <span class="icon is-small">
+                                                    <i class="fas fa-trash"></i>
+                                                </span>
+                                                <span>Eliminar</span>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <button class="button is-small is-danger" disabled title="No puedes eliminar tu propia cuenta">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-trash"></i>
+                                            </span>
+                                            <span>Eliminar</span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="has-text-centered">
+                                    <div class="content">
+                                        <p>
+                                            <i class="fas fa-users fa-3x has-text-grey-light"></i>
+                                        </p>
+                                        <p class="has-text-grey">No hay usuarios registrados</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="notification is-info is-light">
+                <div class="content">
+                    <p><strong>Información:</strong></p>
+                    <ul>
+                        <li>Solo los administradores pueden acceder a esta sección</li>
+                        <li>No puedes eliminar tu propia cuenta</li>
+                        <li>No puedes cambiar tus propios permisos de administrador</li>
+                        <li>Ten cuidado al eliminar usuarios, esta acción no se puede deshacer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+
+.media {
+    align-items: center;
+}
+
+.buttons {
+    flex-wrap: wrap;
+}
+
+.buttons .button {
+    margin-bottom: 0.25rem;
+}
+
+@media screen and (max-width: 768px) {
+    .buttons {
+        flex-direction: column;
+    }
+    
+    .buttons .button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

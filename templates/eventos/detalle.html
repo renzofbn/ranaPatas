@@ -1,0 +1,812 @@
+{% extends "base.html" %}
+
+{% block title %} - {{ evento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-11">
+            <!-- Header del evento -->
+            <div class="box">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div>
+                                <h1 class="title is-2" style="margin-bottom: 10px;">
+                                    <i class="fas fa-calendar-check mr-2 has-text-primary"></i>
+                                    {{ evento.nombre }}
+                                </h1>
+                                <p class="subtitle is-6 has-text-grey">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span id="fecha-creacion">
+                                        Creado el {{ evento.fecha_creacion.strftime('%d/%m/%Y a las %H:%M') if evento.fecha_creacion else 'Fecha no disponible' }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% if session.is_admin %}
+                    <div class="level-right">
+                        <div class="level-item">
+                            <div class="buttons">
+                                <a href="{{ url_for('eventos.editar', evento_id=evento.id) }}" class="button is-info">
+                                    <span class="icon">
+                                        <i class="fas fa-edit"></i>
+                                    </span>
+                                    <span>Editar</span>
+                                </a>
+                                {% if session.logged_in and session.user_id == evento.id_usuario_creado %}
+                                <form method="POST" action="{{ url_for('eventos.eliminar', evento_id=evento.id) }}" style="display: inline;">
+                                    <button type="submit" class="button is-danger" 
+                                            onclick="return confirm('¿Estás seguro de eliminar este evento? Esta acción no se puede deshacer.')">
+                                        <span class="icon">
+                                            <i class="fas fa-trash"></i>
+                                        </span>
+                                        <span>Eliminar</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información principal -->
+            <div class="columns">
+                <div class="column is-three-quarters">
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Detalles del Evento
+                        </h2>
+                        
+                        <div class="content">
+                            <!-- Lugar -->
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-map-marker-alt mr-2 has-text-danger"></i>
+                                    Lugar
+                                </label>
+                                <div class="box has-background-primary-dark">
+                                    <p class="is-size-5 has-text-white"><strong class="has-text-white">{{ evento.lugar }}</strong></p>
+                                </div>
+                            </div>
+
+                            <!-- Fecha de inicio -->
+                            {% if evento.fecha_inicio %}
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-calendar-alt mr-2 has-text-info"></i>
+                                    Fecha y Hora de Inicio
+                                </label>
+                                <div class="box has-background-info-dark">
+                                    <p class="is-size-5 has-text-white">
+                                        <strong class="has-text-white">
+                                            {% set dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                                            {% set meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] %}
+                                            {{ dias[evento.fecha_inicio.weekday()] }}, {{ evento.fecha_inicio.day }} de {{ meses[evento.fecha_inicio.month - 1] }} de {{ evento.fecha_inicio.year }}
+                                        </strong>
+                                        <br>
+                                        <span class=" has-text-white">{{ evento.fecha_inicio.strftime('%H:%M hrs') }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Observaciones -->
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-sticky-note mr-2 has-text-warning"></i>
+                                    Observaciones
+                                </label>
+                                <div class="box">
+                                    <div class="content">
+                                        {% if evento.observaciones and evento.observaciones != 'Sin observaciones' %}
+                                            <p>{{ evento.observaciones }}</p>
+                                        {% else %}
+                                            <em class="has-text-grey">No hay observaciones adicionales para este evento.</em>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar con información adicional -->
+                <div class="column is-one-quarter">
+                    <!-- Información del creador -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-user mr-2"></i>
+                            Creado por
+                        </h3>
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-48x48">
+                                    <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ evento.usuario_creador }}&background=3273dc&color=fff&size=48" alt="Avatar">
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <p class="title is-6">{{ evento.usuario_creador }}</p>
+                                <p class="subtitle is-7 has-text-grey">Organizador</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado del evento -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-flag mr-2"></i>
+                            Estado
+                        </h3>
+                        {% if evento.fecha_inicio %}
+                            <span class="tag is-success is-large">
+                                <i class="fas fa-clock mr-1"></i>
+                                Programado
+                            </span>
+                        {% else %}
+                            <span class="tag is-warning is-large">
+                                <i class="fas fa-question mr-1"></i>
+                                Sin fecha
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acciones rápidas -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-bolt mr-2"></i>
+                            Acciones
+                        </h3>
+                        <div class="buttons">
+                            <a href="{{ url_for('eventos.index') }}" class="button is-light is-fullwidth">
+                                <span class="icon">
+                                    <i class="fas fa-list"></i>
+                                </span>
+                                <span>Ver todos los eventos</span>
+                            </a>
+                            {% if session.is_admin %}
+                            <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary is-fullwidth">
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>Crear nuevo evento</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Participantes -->
+            <div class="columns">
+                <div class="column is-full">
+                    <div class="box">
+                        <div class="level">
+                            <div class="level-left">
+                                <div class="level-item">
+                                    <h2 class="title is-4">
+                                        <i class="fas fa-users mr-2"></i>
+                                        Participantes del Evento
+                                    </h2>
+                                </div>
+                            </div>
+                            {% if session.is_admin %}
+                            <div class="level-right">
+                                <div class="level-item">
+                                    <button class="button is-primary" onclick="openModal('modal-agregar-participante')">
+                                        <span class="icon">
+                                            <i class="fas fa-user-plus"></i>
+                                        </span>
+                                        <span>Agregar Participante</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Estadísticas de participantes -->
+                        <div class="columns mb-4">
+                            <div class="column">
+                                <div class="box has-text-centered has-background-info-dark has-text-white">
+                                    <p class="heading has-text-white-ter">Total Participantes</p>
+                                    <p class="title is-4 has-text-white">{{ stats.total }}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="box has-text-centered has-background-success-dark has-text-white">
+                                    <p class="heading has-text-white-ter">Completados</p>
+                                    <p class="title is-4 has-text-white">{{ stats.completados }}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="box has-text-centered has-background-warning-dark has-text-white">
+                                    <p class="heading has-text-white-ter">En Progreso</p>
+                                    <p class="title is-4 has-text-white">{{ stats.en_progreso }}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="box has-text-centered has-background-danger-dark has-text-white">
+                                    <p class="heading has-text-white-ter">Pendientes</p>
+                                    <p class="title is-4 has-text-white">{{ stats.pendientes }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controles de filtrado y ordenación -->
+                        <div class="box mb-4">
+                            <div class="columns is-mobile">
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label is-small">Filtrar por Código</label>
+                                        <div class="control has-icons-left">
+                                            <input class="input is-small" type="text" id="filtro-codigo" placeholder="Ej: P001">
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-hashtag"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label is-small">Filtrar por Nombre</label>
+                                        <div class="control has-icons-left">
+                                            <input class="input is-small" type="text" id="filtro-nombre" placeholder="Nombre del participante">
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label is-small">Ordenar por Tiempo</label>
+                                        <div class="control">
+                                            <div class="select is-small is-fullwidth">
+                                                <select id="ordenar-tiempo">
+                                                    <option value="">Sin ordenar</option>
+                                                    <option value="asc">Menor a Mayor</option>
+                                                    <option value="desc">Mayor a Menor</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="columns is-mobile">
+                                <div class="column">
+                                    <button class="button is-small is-info" onclick="limpiarFiltros()">
+                                        <span class="icon">
+                                            <i class="fas fa-undo"></i>
+                                        </span>
+                                        <span>Limpiar Filtros</span>
+                                    </button>
+                                    <span class="tag is-dark ml-2" id="contador-resultados">
+                                        <i class="fas fa-list mr-1"></i>
+                                        Mostrando todos los participantes
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de participantes -->
+                        <div class="table-container">
+                            <table class="table is-fullwidth is-striped is-hoverable" id="tabla-participantes">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre Participante</th>
+                                        <th>Tiempo Inicio</th>
+                                        <th>Tiempo Llegada</th>
+                                        <th>Tiempo Total</th>
+                                        <th>Estado</th>
+                                        <th>Agregado por</th>
+                                        <th>Ver</th>
+                                        {% if session.is_admin %}
+                                        <th>Acciones</th>
+                                        {% endif %}
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if participantes %}
+                                        {% for participante in participantes %}
+                                        <tr>
+                                            <td><strong>{{ participante.codigo }}</strong></td>
+                                            <td>
+                                                <div class="media">
+                                                    <div class="media-left">
+                                                        <figure class="image is-32x32">
+                                                            {% set avatar_color = '48c774' if participante.estado == 'completado' else ('ff3860' if participante.estado == 'en_progreso' else '3273dc') %}
+                                                            <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.nombre | urlencode }}&background={{ avatar_color }}&color=fff&size=32" alt="Avatar">
+                                                        </figure>
+                                                    </div>
+                                                    <div class="media-content">
+                                                        <p class="title is-6">{{ participante.nombre }}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if participante.tiempo_inicio %}
+                                                    <span class="tag is-info">
+                                                        <i class="fas fa-play mr-1"></i>
+                                                        {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-dark has-text-white">
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        Pendiente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if participante.tiempo_llegada %}
+                                                    <span class="tag is-success">
+                                                        <i class="fas fa-flag-checkered mr-1"></i>
+                                                        {{ participante.tiempo_llegada.strftime('%H:%M:%S') }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-dark has-text-white">
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        Pendiente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if participante.tiempo_total_str %}
+                                                    <span class="tag is-primary">
+                                                        <i class="fas fa-stopwatch mr-1"></i>
+                                                        <strong>{{ participante.tiempo_total_str }}</strong>
+                                                    </span>
+                                                {% elif participante.estado == 'en_progreso' %}
+                                                    <span class="tag is-warning">
+                                                        <i class="fas fa-hourglass-half mr-1"></i>
+                                                        En progreso
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-dark has-text-white">
+                                                        <i class="fas fa-minus mr-1"></i>
+                                                        Sin tiempo
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if participante.estado == 'completado' %}
+                                                    <span class="tag is-success">
+                                                        <i class="fas fa-check mr-1"></i>
+                                                        Completado
+                                                    </span>
+                                                {% elif participante.estado == 'en_progreso' %}
+                                                    <span class="tag is-warning">
+                                                        <i class="fas fa-running mr-1"></i>
+                                                        En Progreso
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-danger">
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        Pendiente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="tag is-dark">
+                                                    <i class="fas fa-user mr-1"></i>
+                                                    {{ participante.agregado_por or 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/{{ participante.codigo }}" class="button is-small is-info" title="Ver Detalles del Participante">
+                                                        <span class="icon">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                </a>
+                                            </td>
+                                            {% if session.is_admin %}
+                                            <td>
+                                                <div class="buttons">
+                                                    <button class="button is-small is-danger" 
+                                                            data-nombre="{{ participante.nombre }}" 
+                                                            data-id="{{ participante.id }}" 
+                                                            onclick="confirmarEliminar(this.dataset.nombre, this.dataset.id)" 
+                                                            title="Eliminar Participante">
+                                                        <span class="icon">
+                                                            <i class="fas fa-trash"></i>
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <!-- Mensaje cuando no hay participantes -->
+                                        <tr>
+                                            <td colspan="{% if session.is_admin %}8{% else %}7{% endif %}" class="has-text-centered">
+                                                <div class="content">
+                                                    <p>
+                                                        <i class="fas fa-users fa-3x has-text-grey-light"></i>
+                                                    </p>
+                                                    <p class="has-text-grey">No hay participantes registrados en este evento</p>
+                                                    {% if session.is_admin %}
+                                                    <button class="button is-primary mt-3" onclick="openModal('modal-agregar-participante')">
+                                                        <span class="icon">
+                                                            <i class="fas fa-user-plus"></i>
+                                                        </span>
+                                                        <span>Agregar primer participante</span>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Información adicional sobre participantes -->
+                        <div class="notification is-info is-light">
+                            <div class="content">
+                                <p><strong>Información sobre Participantes:</strong></p>
+                                <ul>
+                                    <li>Los participantes se pueden agregar con un código único y nombre</li>
+                                    {% if session.is_admin %}
+                                    <li>Como administrador, puedes iniciar/terminar tiempos y eliminar participantes</li>
+                                    <li>El tiempo total se calcula automáticamente</li>
+                                    {% else %}
+                                    <li>Solo los administradores pueden gestionar participantes</li>
+                                    {% endif %}
+                                    <li>Los diferentes estados ayudan a hacer seguimiento del progreso</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.box {
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+
+.media {
+    align-items: center;
+}
+
+.field .box {
+    margin-bottom: 0;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.buttons {
+    flex-wrap: wrap;
+}
+
+.buttons .button {
+    margin-bottom: 0.25rem;
+}
+
+/* Aumentar el tamaño de los tags de tiempo en la tabla */
+.table .tag {
+    font-size: 0.9rem;
+    padding: 0.5em 0.75em;
+    min-height: 2rem;
+}
+
+.table .tag strong {
+    font-size: 1rem;
+}
+
+.table .tag .icon {
+    margin-right: 0.5em;
+}
+
+/* Estilos para los controles de filtrado */
+.box.has-background-light {
+    border: 1px solid #dbdbdb;
+}
+
+.box.has-background-light .label {
+    margin-bottom: 0.25rem;
+}
+
+.box.has-background-light .field {
+    margin-bottom: 0.5rem;
+}
+
+#contador-resultados {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+/* Mejorar responsividad de filtros */
+@media screen and (max-width: 768px) {
+    .box.has-background-light .columns.is-mobile {
+        flex-direction: column;
+    }
+    
+    .box.has-background-light .column {
+        padding: 0.25rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .level {
+        display: block;
+    }
+    
+    .level-right {
+        margin-top: 1rem;
+    }
+    
+    .buttons {
+        flex-direction: column;
+    }
+    
+    .buttons .button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* En móviles, hacer los tags aún más grandes para mejor legibilidad */
+    .table .tag {
+        font-size: 1rem;
+        padding: 0.6em 0.8em;
+        min-height: 2.2rem;
+    }
+    
+    .table .tag strong {
+        font-size: 1.1rem;
+    }
+}
+</style>
+
+<!-- Modal para agregar participante -->
+<div class="modal" id="modal-agregar-participante">
+    <div class="modal-background" onclick="closeModal('modal-agregar-participante')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <i class="fas fa-user-plus mr-2"></i>
+                Agregar Nuevo Participante
+            </p>
+            <button class="delete" onclick="closeModal('modal-agregar-participante')"></button>
+        </header>
+        <form method="POST" action="{{ url_for('eventos.agregar_participante', nombre_evento=evento.nombre | replace(' ', '-') | lower) }}">
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Código del Participante</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="codigo" placeholder="Ej: P004" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-hashtag"></i>
+                        </span>
+                    </div>
+                    <p class="help">Código único para identificar al participante</p>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Nombre Completo</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="nombre" placeholder="Ej: Ana María Rodríguez" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button type="submit" class="button is-primary">
+                    <span class="icon">
+                        <i class="fas fa-save"></i>
+                    </span>
+                    <span>Agregar Participante</span>
+                </button>
+                <button type="button" class="button" onclick="closeModal('modal-agregar-participante')">Cancelar</button>
+            </footer>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('is-active');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('is-active');
+}
+
+function confirmarEliminar(nombreParticipante, participanteId) {
+    if (confirm(`¿Estás seguro de eliminar al participante ${nombreParticipante}? Esta acción no se puede deshacer.`)) {
+        // Crear un formulario temporal para hacer la petición POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/eliminar-participante/${participanteId}`;
+        
+        // Agregar el formulario al body y enviarlo
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Cerrar modales con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const activeModals = document.querySelectorAll('.modal.is-active');
+        activeModals.forEach(modal => {
+            modal.classList.remove('is-active');
+        });
+    }
+});
+
+// Convertir fecha de creación a zona horaria local
+document.addEventListener('DOMContentLoaded', function() {
+    const elementoFecha = document.getElementById('fecha-creacion');
+    if (elementoFecha) {
+        {% if evento.fecha_creacion %}
+        // Crear fecha UTC desde los datos del servidor
+        const fechaUTC = new Date('{{ evento.fecha_creacion.strftime('%Y-%m-%dT%H:%M:%S') }}Z');
+        
+        // Convertir a zona horaria local y formatear
+        const fechaLocal = fechaUTC.toLocaleString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        
+        // Actualizar el elemento con la fecha local
+        elementoFecha.textContent = `Creado el ${fechaLocal.replace(',', ' a las')}`;
+        {% else %}
+        elementoFecha.textContent = 'Fecha no disponible';
+        {% endif %}
+    }
+    
+    // Inicializar filtros y ordenación
+    inicializarFiltrosYOrdenacion();
+});
+
+// Funciones para filtrado y ordenación de participantes
+function inicializarFiltrosYOrdenacion() {
+    const tabla = document.getElementById('tabla-participantes');
+    if (!tabla) return;
+    
+    const tbody = tabla.querySelector('tbody');
+    if (!tbody) return;
+    
+    // Guardar filas originales
+    const filasOriginales = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Event listeners para filtros
+    document.getElementById('filtro-codigo').addEventListener('input', aplicarFiltros);
+    document.getElementById('filtro-nombre').addEventListener('input', aplicarFiltros);
+    document.getElementById('ordenar-tiempo').addEventListener('change', aplicarFiltros);
+    
+    function aplicarFiltros() {
+        const filtroCodigo = document.getElementById('filtro-codigo').value.toLowerCase().trim();
+        const filtroNombre = document.getElementById('filtro-nombre').value.toLowerCase().trim();
+        const ordenTiempo = document.getElementById('ordenar-tiempo').value;
+        
+        // Filtrar filas
+        let filasVisibles = filasOriginales.filter(fila => {
+            // Verificar si es la fila de "no hay participantes"
+            if (fila.cells.length === 1 || fila.querySelector('.fas.fa-users.fa-3x')) {
+                return filtroCodigo === '' && filtroNombre === '';
+            }
+            
+            const codigo = fila.cells[0].textContent.toLowerCase().trim();
+            const nombre = fila.cells[1].textContent.toLowerCase().trim();
+            
+            const cumpleCodigo = filtroCodigo === '' || codigo.includes(filtroCodigo);
+            const cumpleNombre = filtroNombre === '' || nombre.includes(filtroNombre);
+            
+            return cumpleCodigo && cumpleNombre;
+        });
+        
+        // Ordenar por tiempo si se especifica
+        if (ordenTiempo && filasVisibles.length > 0) {
+            // Solo ordenar filas con datos reales (no la fila de "no hay participantes")
+            const filasConDatos = filasVisibles.filter(fila => 
+                fila.cells.length > 1 && !fila.querySelector('.fas.fa-users.fa-3x')
+            );
+            
+            filasConDatos.sort((a, b) => {
+                const tiempoA = extraerTiempoTotal(a);
+                const tiempoB = extraerTiempoTotal(b);
+                
+                if (tiempoA === null && tiempoB === null) return 0;
+                if (tiempoA === null) return 1;
+                if (tiempoB === null) return -1;
+                
+                return ordenTiempo === 'asc' ? tiempoA - tiempoB : tiempoB - tiempoA;
+            });
+            
+            filasVisibles = filasConDatos;
+        }
+        
+        // Limpiar tbody y agregar filas filtradas
+        tbody.innerHTML = '';
+        
+        if (filasVisibles.length === 0) {
+            // Mostrar mensaje de no resultados
+            const filaVacia = document.createElement('tr');
+            filaVacia.innerHTML = `
+                <td colspan="{% if session.is_admin %}9{% else %}8{% endif %}" class="has-text-centered">
+                    <div class="content">
+                        <p><i class="fas fa-search fa-2x has-text-grey-light"></i></p>
+                        <p class="has-text-grey">No se encontraron participantes con los filtros aplicados</p>
+                        <button class="button is-small is-info mt-2" onclick="limpiarFiltros()">
+                            <span class="icon"><i class="fas fa-undo"></i></span>
+                            <span>Limpiar filtros</span>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(filaVacia);
+        } else {
+            filasVisibles.forEach(fila => tbody.appendChild(fila));
+        }
+        
+        // Actualizar contador
+        actualizarContador(filasVisibles.length, filasOriginales.length);
+    }
+    
+    function extraerTiempoTotal(fila) {
+        const celdaTiempo = fila.cells[4]; // Columna de Tiempo Total
+        if (!celdaTiempo) return null;
+        
+        const tagTiempo = celdaTiempo.querySelector('.tag.is-primary strong');
+        if (!tagTiempo) return null;
+        
+        const tiempoStr = tagTiempo.textContent.trim();
+        
+        // Convertir tiempo en formato MM:SS o HH:MM:SS a segundos
+        const partes = tiempoStr.split(':');
+        if (partes.length === 2) {
+            // MM:SS
+            return parseInt(partes[0]) * 60 + parseInt(partes[1]);
+        } else if (partes.length === 3) {
+            // HH:MM:SS
+            return parseInt(partes[0]) * 3600 + parseInt(partes[1]) * 60 + parseInt(partes[2]);
+        }
+        
+        return null;
+    }
+    
+    function actualizarContador(visibles, total) {
+        const contador = document.getElementById('contador-resultados');
+        if (contador) {
+            if (visibles === total) {
+                contador.innerHTML = `<i class="fas fa-list mr-1"></i>Mostrando todos los participantes (${total})`;
+                contador.className = 'tag is-light ml-2';
+            } else {
+                contador.innerHTML = `<i class="fas fa-filter mr-1"></i>Mostrando ${visibles} de ${total} participantes`;
+                contador.className = 'tag is-info ml-2';
+            }
+        }
+    }
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtro-codigo').value = '';
+    document.getElementById('filtro-nombre').value = '';
+    document.getElementById('ordenar-tiempo').value = '';
+    
+    // Disparar evento para actualizar la tabla
+    const event = new Event('input', { bubbles: true });
+    document.getElementById('filtro-codigo').dispatchEvent(event);
+}
+</script>
+{% endblock %}

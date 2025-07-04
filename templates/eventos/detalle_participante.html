@@ -10,7 +10,7 @@
             <nav class="breadcrumb mb-4" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('eventos.index') }}">Eventos</a></li>
-                    <li><a href="{{ url_for('eventos.detalle', nombre_evento=evento.nombre | replace(' ', '-') | lower) }}">{{ evento.nombre }}</a></li>
+                    <li><a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}">{{ evento.nombre }}</a></li>
                     <li class="is-active"><a href="#" aria-current="page">{{ participante.codigo }} - {{ participante.nombre }}</a></li>
                 </ul>
             </nav>
@@ -121,7 +121,7 @@
                                 {% if participante.tiempo_total_str %}
                                     Tiempo Final Registrado
                                 {% else %}
-                                    Cronómetro Interactivo
+                                    Cronómetro del Participante
                                 {% endif %}
                             </p>
                             
@@ -151,18 +151,8 @@
                             {% else %}
                             <!-- Display del cronómetro -->
                             <div class="cronometro-display mb-4">
-                                <div class="cronometro-circle">
-                                    <svg class="cronometro-svg" width="200" height="200" viewBox="0 0 200 200">
-                                        <!-- Círculo de fondo -->
-                                        <circle cx="100" cy="100" r="90" stroke="rgba(255,255,255,0.2)" stroke-width="8" fill="none"/>
-                                        <!-- Círculo de progreso -->
-                                        <circle id="progreso-circle" cx="100" cy="100" r="90" stroke="#48c774" stroke-width="8" fill="none"
-                                                stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="565.48"
-                                                transform="rotate(-90 100 100)" style="transition: stroke-dashoffset 0.3s ease"/>
-                                    </svg>
-                                    <div class="cronometro-time">
-                                        <span id="cronometro-tiempo" class="title is-4 has-text-white">00:00:00</span>
-                                    </div>
+                                <div class="cronometro-time-only">
+                                    <span id="cronometro-tiempo" class="title is-1 has-text-white">00:00:00</span>
                                 </div>
                                 
                                 <div class="cronometro-status mt-3" >
@@ -177,27 +167,31 @@
                             <!-- Controles del cronómetro -->
                             {% if not participante.tiempo_total_str and session.is_admin %}
                             <div class="buttons is-centered mb-4">
-                                {% if not participante.tiempo_inicio %}
-                                <button class="button is-success is-large" id="btn-iniciar" onclick="iniciarCronometro()">
-                                    <span class="icon">
-                                        <i class="fas fa-play"></i>
-                                    </span>
-                                    <span>Iniciar Cronómetro</span>
-                                </button>
-                                {% else %}
+                                {% if participante.tiempo_inicio and not participante.tiempo_llegada %}
                                 <button class="button is-info is-large" id="btn-finalizar" onclick="finalizarCronometro()">
                                     <span class="icon">
                                         <i class="fas fa-flag-checkered"></i>
                                     </span>
                                     <span>Finalizar Cronómetro</span>
                                 </button>
+                                {% elif not participante.tiempo_inicio %}
+                                <div class="notification is-info is-light">
+                                    <p class="has-text-weight-semibold">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        El cronómetro se iniciará cuando el administrador inicie el evento
+                                    </p>
+                                </div>
                                 {% endif %}
                             </div>
                             {% elif not participante.tiempo_total_str %}
                             <div class="notification is-info is-light">
                                 <p class="has-text-weight-semibold">
-                                    <i class="fas fa-lock mr-2"></i>
-                                    Solo los administradores pueden controlar el cronómetro
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    {% if participante.tiempo_inicio %}
+                                    Solo los administradores pueden finalizar el cronómetro
+                                    {% else %}
+                                    El cronómetro se iniciará cuando el administrador inicie el evento
+                                    {% endif %}
                                 </p>
                             </div>
                             {% endif %}
@@ -395,6 +389,14 @@
 </div>
 
 <style>
+/* Cargar fuente personalizada para el cronómetro */
+@font-face {
+    font-family: 'BeautifulPoliceOfficer';
+    src: url('{{ url_for("static", filename="fonts/BeautifulPoliceOfficer-rvv8x.ttf") }}') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 .box {
     box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
 }
@@ -422,25 +424,24 @@
 }
 
 /* Estilos para el cronómetro interactivo */
-.cronometro-circle {
-    position: relative;
-    display: inline-block;
-}
-
-.cronometro-svg {
-    transform: rotate(-90deg);
-}
-
-.cronometro-time {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+.cronometro-time-only {
     text-align: center;
+    padding: 2rem;
+}
+
+/* Aplicar fuente personalizada al tiempo del cronómetro */
+#cronometro-tiempo {
+    font-family: 'BeautifulPoliceOfficer', 'Courier New', monospace !important;
+    font-weight: normal;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 3rem !important;
+    display: block;
 }
 
 .cronometro-display {
     margin: 0 auto;
+    text-align: center;
 }
 
 #cronometro-status {
@@ -455,6 +456,8 @@
 .tiempo-final-display .title {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     animation: pulse-success 2s infinite;
+    font-family: 'BeautifulPoliceOfficer', 'Courier New', monospace !important;
+    letter-spacing: 3px;
 }
 
 @keyframes pulse-success {
@@ -469,13 +472,12 @@
 
 /* Responsive para móviles con cronómetro */
 @media (max-width: 768px) {
-    .cronometro-svg {
-        width: 150px;
-        height: 150px;
+    .cronometro-time-only {
+        padding: 1rem;
     }
     
-    .cronometro-time .title {
-        font-size: 1.5rem !important;
+    #cronometro-tiempo {
+        font-size: 2rem !important;
     }
     
     .buttons .button {
@@ -488,6 +490,10 @@
     
     .tiempo-final-display .subtitle {
         font-size: 1.25rem !important;
+    }
+    
+    #cronometro-tiempo {
+        letter-spacing: 1px;
     }
 }
 </style>
@@ -502,13 +508,7 @@ let cronometroActivo = false;
 // Elementos del DOM
 const displayTiempo = document.getElementById('cronometro-tiempo');
 const statusElement = document.getElementById('cronometro-status');
-const btnIniciar = document.getElementById('btn-iniciar');
 const btnFinalizar = document.getElementById('btn-finalizar');
-const progresoCircle = document.getElementById('progreso-circle');
-
-// Configuración del círculo de progreso
-const circunferencia = 2 * Math.PI * 90; // radio = 90
-const tiempoMaximo = 3600; // 1 hora en segundos para completar el círculo
 
 // Inicializar cronómetro al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
@@ -534,7 +534,6 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
     
     actualizarDisplay();
-    actualizarProgreso();
     {% else %}
     // Si ya hay tiempo total registrado, no inicializar cronómetro
     console.log('Participante ya tiene tiempo final registrado: {{ participante.tiempo_total_str }}');
@@ -542,68 +541,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Función para iniciar el cronómetro
-function iniciarCronometro() {
-    {% if not session.is_admin %}
-    mostrarNotificacionTemporal('error', 'Solo los administradores pueden controlar el cronómetro');
-    return;
-    {% endif %}
-    
-    // Deshabilitar botón para evitar doble click
-    if (btnIniciar) {
-        btnIniciar.disabled = true;
-        btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-pulse"></i></span><span>Iniciando...</span>';
-    }
-    
-    // Hacer llamada al backend para registrar el inicio
-    fetch(`/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/participante/{{ participante.codigo }}/iniciar-cronometro`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // El backend devuelve el timestamp de inicio
-            tiempoInicial = new Date(data.tiempo_inicio).getTime();
-            cronometroActivo = true;
-            
-            // Calcular tiempo transcurrido
-            actualizarTiempoDesdeInicio();
-            
-            // Iniciar contador
-            iniciarContador();
-            
-            // Actualizar interfaz
-            if (btnIniciar) {
-                btnIniciar.style.display = 'none';
-            }
-            if (btnFinalizar) {
-                btnFinalizar.style.display = 'inline-flex';
-            }
-            
-            actualizarStatus('running', 'En progreso');
-            mostrarNotificacionTemporal('success', `¡Cronómetro iniciado! Registrado por ${data.iniciado_por}`);
-        } else {
-            // Error en el backend
-            if (btnIniciar) {
-                btnIniciar.disabled = false;
-                btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Iniciar Cronómetro</span>';
-            }
-            mostrarNotificacionTemporal('error', data.error || 'Error al iniciar cronómetro');
-        }
-    })
-    .catch(error => {
-        // Error de conexión
-        if (btnIniciar) {
-            btnIniciar.disabled = false;
-            btnIniciar.innerHTML = '<span class="icon"><i class="fas fa-play"></i></span><span>Iniciar Cronómetro</span>';
-        }
-        mostrarNotificacionTemporal('error', 'Error de conexión al iniciar cronómetro');
-        console.error('Error:', error);
-    });
-}
-
 // Función para finalizar el cronómetro
 function finalizarCronometro() {
     {% if not session.is_admin %}
@@ -618,7 +555,7 @@ function finalizarCronometro() {
     }
     
     // Hacer llamada al backend para registrar la finalización
-    fetch(`/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/participante/{{ participante.codigo }}/finalizar-cronometro`, {
+    fetch(`/eventos/{{ evento_url_slug(evento.id, evento.nombre) }}/participante/{{ participante.codigo }}/finalizar-cronometro`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -632,7 +569,6 @@ function finalizarCronometro() {
             cronometroActivo = false;
             
             // Actualizar interfaz
-            if (btnIniciar) btnIniciar.disabled = true;
             if (btnFinalizar) {
                 btnFinalizar.innerHTML = '<span class="icon"><i class="fas fa-flag-checkered"></i></span><span>Finalizar Cronómetro</span>';
                 btnFinalizar.disabled = true;
@@ -669,7 +605,7 @@ function finalizarCronometro() {
     });
 }
 
-// Función para iniciar el contador en tiempo real
+// Función para actualizar el contador en tiempo real
 function iniciarContador() {
     detenerContador(); // Limpiar cualquier interval anterior
     
@@ -677,7 +613,6 @@ function iniciarContador() {
         if (tiempoInicial && cronometroActivo) {
             actualizarTiempoDesdeInicio();
             actualizarDisplay();
-            actualizarProgreso();
         }
     }, 1000);
 }
@@ -709,25 +644,6 @@ function actualizarDisplay() {
     const elementoTiempoTranscurrido = document.getElementById('tiempo-transcurrido');
     if (elementoTiempoTranscurrido) {
         elementoTiempoTranscurrido.textContent = tiempoFormateado;
-    }
-}
-
-// Función para actualizar el círculo de progreso
-function actualizarProgreso() {
-    if (!progresoCircle) return;
-    
-    const progreso = Math.min(tiempoActual / tiempoMaximo, 1);
-    const offset = circunferencia - (progreso * circunferencia);
-    
-    progresoCircle.style.strokeDashoffset = offset;
-    
-    // Cambiar color según el progreso
-    if (progreso < 0.5) {
-        progresoCircle.style.stroke = '#48c774'; // Verde
-    } else if (progreso < 0.8) {
-        progresoCircle.style.stroke = '#ffdd57'; // Amarillo
-    } else {
-        progresoCircle.style.stroke = '#f14668'; // Rojo
     }
 }
 

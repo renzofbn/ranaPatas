@@ -57,6 +57,24 @@
                         <p class="help">Opcional - Información adicional sobre el evento</p>
                     </div>
 
+                    <div class="field">
+                        <label class="label">Estado del Evento</label>
+                        <div class="control has-icons-left">
+                            <div class="select is-fullwidth">
+                                <select name="estado">
+                                    <option value="programado" selected>Programado</option>
+                                    <option value="enCurso">En Curso</option>
+                                    <option value="completado">Completado</option>
+                                    <option value="cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-flag"></i>
+                            </span>
+                        </div>
+                        <p class="help">Estado actual del evento</p>
+                    </div>
+
                     <div class="field is-grouped">
                         <div class="control">
                             <button class="button is-primary" type="submit">

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} - Eventos{% endblock %}
+{% block title %} - Todos los Eventos{% endblock %}
 
 {% block content %}
 <div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
@@ -13,21 +13,20 @@
                         <div>
                             <h1 class="title is-3">
                                 <i class="fas fa-calendar-alt mr-2"></i>
-                                Eventos de Este Mes
+                                Historial de Eventos
                             </h1>
-                            <p class="subtitle is-6">Listado de eventos del mes actual</p>
+                            <p class="subtitle is-6">Listado completo de todos los eventos del sistema</p>
                         </div>
                     </div>
                 </div>
-                {% if session.is_admin %}
                 <div class="level-right">
                     <div class="level-item">
                         <div class="buttons">
-                            <a href="{{ url_for('eventos.todos') }}" class="button is-info is-outlined">
+                            <a href="{{ url_for('eventos.index') }}" class="button is-info is-outlined">
                                 <span class="icon">
-                                    <i class="fas fa-history"></i>
+                                    <i class="fas fa-calendar-week"></i>
                                 </span>
-                                <span>Ver Historial</span>
+                                <span>Eventos Este Mes</span>
                             </a>
                             <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary">
                                 <span class="icon">
@@ -38,14 +37,13 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
             </div>
 
             <!-- Estadísticas -->
             <div class="columns mb-5">
                 <div class="column">
                     <div class="box has-text-centered">
-                        <p class="heading">Eventos Este Mes</p>
+                        <p class="heading">Total Eventos</p>
                         <p class="title is-3">{{ eventos|length }}</p>
                     </div>
                 </div>
@@ -77,9 +75,7 @@
                                 <th>Creado por</th>
                                 <th>Fecha Creación</th>
                                 <th>Ver</th>
-                                {% if session.is_admin %}
                                 <th>Acciones</th>
-                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -179,7 +175,6 @@
                                     </a>
                                     </div>
                                 </td>
-                                {% if session.is_admin %}
                                 <td>
                                     <div class="buttons">
                                         <a href="{{ url_for('eventos.editar', evento_id=evento.id) }}" class="button is-small is-info">
@@ -199,24 +194,21 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                {% endif %}
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="{% if session.is_admin %}9{% else %}8{% endif %}" class="has-text-centered">
+                                <td colspan="9" class="has-text-centered">
                                     <div class="content">
                                         <p>
                                             <i class="fas fa-calendar-times fa-3x has-text-grey-light"></i>
                                         </p>
-                                        <p class="has-text-grey">No hay eventos registrados para este mes</p>
-                                        {% if session.is_admin %}
+                                        <p class="has-text-grey">No hay eventos registrados en el sistema</p>
                                         <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary mt-3">
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
                                             </span>
                                             <span>Crear primer evento</span>
                                         </a>
-                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -227,18 +219,15 @@
             </div>
 
             <!-- Información adicional -->
-            <div class="notification is-info is-light">
+            <div class="notification is-warning is-light">
                 <div class="content">
-                    <p><strong>Información sobre Eventos:</strong></p>
+                    <p><strong>Historial Completo de Eventos:</strong></p>
                     <ul>
-                        <li>Se muestran solo los eventos del mes actual</li>
-                        {% if session.is_admin %}
-                        <li>Como administrador, puedes crear, editar y eliminar eventos</li>
-                        <li>Los eventos se muestran ordenados por fecha de inicio</li>
-                        {% else %}
-                        <li>Solo los administradores pueden gestionar eventos</li>
-                        {% endif %}
-                        <li>Los eventos próximos se destacan con colores diferentes</li>
+                        <li>Esta vista muestra todos los eventos del sistema (histórico completo)</li>
+                        <li>Solo disponible para administradores</li>
+                        <li>Los eventos se muestran ordenados por fecha de creación (más recientes primero)</li>
+                        <li>Puedes gestionar todos los eventos desde esta vista</li>
+                        <li>Para ver solo los eventos del mes actual, usa el botón "Eventos Este Mes"</li>
                     </ul>
                 </div>
             </div>

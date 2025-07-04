@@ -9,20 +9,31 @@ eventos_bp = Blueprint('eventos', __name__, url_prefix='/eventos')
 
 @eventos_bp.route('/')
 def index():
-    """Listar todos los eventos"""
+    """Listar eventos del mes actual"""
     try:
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Obtener todos los eventos con información del usuario creador
+        # Obtener fechas del mes actual
+        now = datetime.now()
+        first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if now.month == 12:
+            first_day_of_next_month = first_day_of_month.replace(year=now.year + 1, month=1)
+        else:
+            first_day_of_next_month = first_day_of_month.replace(month=now.month + 1)
+        
+        # Obtener eventos del mes actual con información del usuario creador
         cur.execute("""
             SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
                    e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
-                   u.usuario as usuario_creador
+                   e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
+                   u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
             FROM eventos e
             LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
-            ORDER BY e.fecha_creacion DESC
-        """)
+            LEFT JOIN usuarios u_iniciado ON e.torneo_iniciado_por = u_iniciado.id
+            WHERE e.fecha_inicio >= %s AND e.fecha_inicio < %s
+            ORDER BY e.fecha_inicio ASC, e.fecha_creacion DESC
+        """, (first_day_of_month, first_day_of_next_month))
         
         eventos_raw = cur.fetchall()
         cur.close()
@@ -39,7 +50,11 @@ def index():
                 'lugar': evento[5] or 'No especificado',
                 'observaciones': evento[6] or '',
                 'fecha_inicio': evento[7],
-                'usuario_creador': evento[8] or evento[3]  # Fallback al nombre guardado
+                'estado': evento[8] or 'programado',  # Valor por defecto
+                'torneo_empezado_en': evento[9],
+                'torneo_iniciado_por': evento[10],
+                'usuario_creador': evento[11] or evento[3],  # Fallback al nombre guardado
+                'usuario_iniciado': evento[12]
             })
         
         return render_template('eventos/index.html', eventos=eventos)
@@ -60,6 +75,7 @@ def nuevo():
             lugar = request.form.get('lugar', '').strip()
             observaciones = request.form.get('observaciones', '').strip()
             fecha_inicio = request.form.get('fecha_inicio', '').strip()
+            estado = request.form.get('estado', 'programado').strip()
             
             # Validaciones básicas
             if not nombre:
@@ -91,15 +107,16 @@ def nuevo():
             cur = mysql.connection.cursor()
             
             cur.execute("""
-                INSERT INTO eventos (nombre, creado_por_usuario, id_usuario_creado, lugar, observaciones, fecha_inicio)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO eventos (nombre, creado_por_usuario, id_usuario_creado, lugar, observaciones, fecha_inicio, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 nombre,
                 current_user['usuario'],
                 current_user['id'],
                 lugar if lugar else None,
                 observaciones if observaciones else None,
-                fecha_inicio_obj
+                fecha_inicio_obj,
+                estado
             ))
             
             mysql.connection.commit()
@@ -107,7 +124,7 @@ def nuevo():
             cur.close()
             
             flash(f'Evento "{nombre}" creado exitosamente', 'success')
-            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre)))
+            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre, evento_id)))
             
         except Exception as e:
             flash(f'Error al crear evento: {str(e)}', 'error')
@@ -122,20 +139,43 @@ def detalle(nombre_evento):
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Buscar evento por nombre (usando LIKE para flexibilidad)
-        # Convertir el slug de vuelta a un nombre aproximado para buscar
-        nombre_busqueda = nombre_evento.replace('-', ' ')
-
-        cur.execute("""
-            SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                   e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
-                   u.usuario as usuario_creador
-            FROM eventos e
-            LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
-            WHERE LOWER(e.nombre) LIKE LOWER(%s)
-            ORDER BY e.id DESC
-            LIMIT 1
-        """, (f'%{nombre_busqueda}%',))
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("""
+                SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
+                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
+                       u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
+                FROM eventos e
+                LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
+                LEFT JOIN usuarios u_iniciado ON e.torneo_iniciado_por = u_iniciado.id
+                WHERE e.id = %s
+            """, (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            nombre_busqueda = nombre_evento.replace('-', ' ')
+            cur.execute("""
+                SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
+                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
+                       u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
+                FROM eventos e
+                LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
+                LEFT JOIN usuarios u_iniciado ON e.torneo_iniciado_por = u_iniciado.id
+                WHERE LOWER(e.nombre) LIKE LOWER(%s)
+                ORDER BY e.id DESC
+                LIMIT 1
+            """, (f'%{nombre_busqueda}%',))
         
         evento_raw = cur.fetchone()
         
@@ -155,7 +195,11 @@ def detalle(nombre_evento):
             'lugar': evento_raw[5] or 'No especificado',
             'observaciones': evento_raw[6] or 'Sin observaciones',
             'fecha_inicio': evento_raw[7],
-            'usuario_creador': evento_raw[8] or evento_raw[3]
+            'estado': evento_raw[8] or 'programado',
+            'torneo_empezado_en': evento_raw[9],
+            'torneo_iniciado_por': evento_raw[10],
+            'usuario_creador': evento_raw[11] or evento_raw[3],
+            'usuario_iniciado': evento_raw[12]
         }
         
         # Obtener participantes del evento
@@ -240,6 +284,7 @@ def editar(evento_id):
             lugar = request.form.get('lugar', '').strip()
             observaciones = request.form.get('observaciones', '').strip()
             fecha_inicio = request.form.get('fecha_inicio', '').strip()
+            estado = request.form.get('estado', 'programado').strip()
             
             # Validaciones básicas
             if not nombre:
@@ -261,13 +306,14 @@ def editar(evento_id):
             
             cur.execute("""
                 UPDATE eventos 
-                SET nombre = %s, lugar = %s, observaciones = %s, fecha_inicio = %s
+                SET nombre = %s, lugar = %s, observaciones = %s, fecha_inicio = %s, estado = %s
                 WHERE id = %s
             """, (
                 nombre,
                 lugar if lugar else None,
                 observaciones if observaciones else None,
                 fecha_inicio_obj,
+                estado,
                 evento_id
             ))
             
@@ -275,7 +321,7 @@ def editar(evento_id):
             cur.close()
             
             flash(f'Evento "{nombre}" actualizado exitosamente', 'success')
-            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre)))
+            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre, evento_id)))
             
         except Exception as e:
             flash(f'Error al actualizar evento: {str(e)}', 'error')
@@ -287,7 +333,7 @@ def editar(evento_id):
         cur = mysql.connection.cursor()
         
         cur.execute("""
-            SELECT id, nombre, lugar, observaciones, fecha_inicio
+            SELECT id, nombre, lugar, observaciones, fecha_inicio, estado
             FROM eventos 
             WHERE id = %s
         """, (evento_id,))
@@ -304,7 +350,8 @@ def editar(evento_id):
             'nombre': evento_raw[1],
             'lugar': evento_raw[2] or '',
             'observaciones': evento_raw[3] or '',
-            'fecha_inicio': evento_raw[4].strftime('%Y-%m-%dT%H:%M') if evento_raw[4] else ''
+            'fecha_inicio': evento_raw[4].strftime('%Y-%m-%dT%H:%M') if evento_raw[4] else '',
+            'estado': evento_raw[5] or 'programado'
         }
         
         return render_template('eventos/editar.html', evento=evento)
@@ -339,7 +386,7 @@ def eliminar(evento_id):
         if not usuario_actual or usuario_actual['id'] != id_usuario_creado:
             flash('Solo el creador del evento puede eliminarlo', 'error')
             cur.close()
-            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre_evento)))
+            return redirect(url_for('eventos.detalle', nombre_evento=_slug_from_name(nombre_evento, evento_id)))
         
         # Primero eliminar todos los participantes del evento
         print(f"DEBUG: Eliminando participantes del evento {evento_id}")
@@ -385,13 +432,27 @@ def agregar_participante(nombre_evento):
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Buscar el evento
-        nombre_busqueda = nombre_evento.replace('-', ' ')
-        cur.execute("""
-            SELECT id FROM eventos 
-            WHERE LOWER(nombre) LIKE LOWER(%s)
-            ORDER BY id DESC LIMIT 1
-        """, (f'%{nombre_busqueda}%',))
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("SELECT id FROM eventos WHERE id = %s", (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            nombre_busqueda = nombre_evento.replace('-', ' ')
+            cur.execute("""
+                SELECT id FROM eventos 
+                WHERE LOWER(nombre) LIKE LOWER(%s)
+                ORDER BY id DESC LIMIT 1
+            """, (f'%{nombre_busqueda}%',))
         
         evento = cur.fetchone()
         if not evento:
@@ -477,17 +538,38 @@ def detalle_participante(nombre_evento, codigo_participante):
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Buscar el evento primero
-        nombre_busqueda = nombre_evento.replace('-', ' ')
-        cur.execute("""
-            SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                   e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
-                   u.usuario as usuario_creador
-            FROM eventos e
-            LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
-            WHERE LOWER(e.nombre) LIKE LOWER(%s)
-            ORDER BY e.id DESC LIMIT 1
-        """, (f'%{nombre_busqueda}%',))
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("""
+                SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
+                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.estado, u.usuario as usuario_creador
+                FROM eventos e
+                LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
+                WHERE e.id = %s
+            """, (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            nombre_busqueda = nombre_evento.replace('-', ' ')
+            cur.execute("""
+                SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
+                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.estado, u.usuario as usuario_creador
+                FROM eventos e
+                LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
+                WHERE LOWER(e.nombre) LIKE LOWER(%s)
+                ORDER BY e.id DESC LIMIT 1
+            """, (f'%{nombre_busqueda}%',))
         
         evento_raw = cur.fetchone()
         
@@ -506,7 +588,8 @@ def detalle_participante(nombre_evento, codigo_participante):
             'lugar': evento_raw[5] or 'No especificado',
             'observaciones': evento_raw[6] or 'Sin observaciones',
             'fecha_inicio': evento_raw[7],
-            'usuario_creador': evento_raw[8] or evento_raw[3]
+            'estado': evento_raw[8] or 'programado',
+            'usuario_creador': evento_raw[9] or evento_raw[3]
         }
         
         # Buscar el participante específico
@@ -619,8 +702,23 @@ def iniciar_cronometro(nombre_evento, codigo_participante):
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Verificar que el evento existe
-        cur.execute("SELECT id FROM eventos WHERE nombre = %s", (nombre_evento.replace('-', ' '),))
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("SELECT id FROM eventos WHERE id = %s", (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            cur.execute("SELECT id FROM eventos WHERE nombre = %s", (nombre_evento.replace('-', ' '),))
+        
         evento = cur.fetchone()
         if not evento:
             cur.close()
@@ -685,8 +783,23 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Verificar que el evento existe
-        cur.execute("SELECT id FROM eventos WHERE nombre = %s", (nombre_evento.replace('-', ' '),))
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("SELECT id FROM eventos WHERE id = %s", (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            cur.execute("SELECT id FROM eventos WHERE nombre = %s", (nombre_evento.replace('-', ' '),))
+        
         evento = cur.fetchone()
         if not evento:
             cur.close()
@@ -780,10 +893,156 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
     except Exception as e:
         return {'success': False, 'error': f'Error al finalizar cronómetro: {str(e)}'}, 500
 
-def _slug_from_name(nombre):
+@eventos_bp.route('/todos')
+@require_admin()
+def todos():
+    """Listar todos los eventos - Solo administradores"""
+    try:
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Obtener todos los eventos con información del usuario creador
+        cur.execute("""
+            SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
+                   e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                   e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
+                   u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
+            FROM eventos e
+            LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
+            LEFT JOIN usuarios u_iniciado ON e.torneo_iniciado_por = u_iniciado.id
+            ORDER BY e.fecha_creacion DESC
+        """)
+        
+        eventos_raw = cur.fetchall()
+        cur.close()
+        
+        # Convertir a lista de diccionarios
+        eventos = []
+        for evento in eventos_raw:
+            eventos.append({
+                'id': evento[0],
+                'nombre': evento[1],
+                'fecha_creacion': evento[2],
+                'creado_por_usuario': evento[3],
+                'id_usuario_creado': evento[4],
+                'lugar': evento[5] or 'No especificado',
+                'observaciones': evento[6] or '',
+                'fecha_inicio': evento[7],
+                'estado': evento[8] or 'programado',
+                'torneo_empezado_en': evento[9],
+                'torneo_iniciado_por': evento[10],
+                'usuario_creador': evento[11] or evento[3],  # Fallback al nombre guardado
+                'usuario_iniciado': evento[12]
+            })
+        
+        return render_template('eventos/todos.html', eventos=eventos)
+        
+    except Exception as e:
+        flash(f'Error al cargar eventos: {str(e)}', 'error')
+        eventos = []
+        return render_template('eventos/todos.html', eventos=eventos)
+
+@eventos_bp.route('/<string:nombre_evento>/iniciar-tiempo', methods=['POST'])
+@require_admin()
+def iniciar_tiempo(nombre_evento):
+    """Iniciar el tiempo del evento (solo administradores)"""
+    try:
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("""
+                SELECT e.id, e.nombre, e.torneo_empezado_en, e.estado
+                FROM eventos e
+                WHERE e.id = %s
+            """, (evento_id,))
+        else:
+            # Método fallback: buscar por nombre
+            nombre_busqueda = nombre_evento.replace('-', ' ')
+            cur.execute("""
+                SELECT e.id, e.nombre, e.torneo_empezado_en, e.estado
+                FROM eventos e
+                WHERE LOWER(e.nombre) LIKE LOWER(%s)
+                ORDER BY e.id DESC
+                LIMIT 1
+            """, (f'%{nombre_busqueda}%',))
+        
+        evento = cur.fetchone()
+        
+        if not evento:
+            cur.close()
+            flash('Evento no encontrado', 'error')
+            return redirect(url_for('eventos.index'))
+        
+        # Verificar si el evento ya fue iniciado
+        if evento[2]:  # torneo_empezado_en ya tiene valor
+            cur.close()
+            flash('El evento ya ha sido iniciado', 'warning')
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Obtener usuario actual
+        current_user = get_current_user()
+        
+        # Crear zona horaria GMT-5
+        gmt_minus_5 = timezone(timedelta(hours=-5))
+        tiempo_inicio = datetime.now(gmt_minus_5)
+        
+        # Actualizar el evento: cambiar estado a "enCurso" y registrar tiempo de inicio
+        cur.execute("""
+            UPDATE eventos 
+            SET estado = 'enCurso', 
+                torneo_empezado_en = %s,
+                torneo_iniciado_por = %s
+            WHERE id = %s
+        """, (tiempo_inicio, current_user['id'], evento[0]))
+        
+        # Actualizar todos los participantes del evento con el tiempo de inicio
+        cur.execute("""
+            UPDATE participantes_evento 
+            SET tiempo_inicio = %s,
+                tiempo_iniciado_por = %s
+            WHERE evento_id = %s AND tiempo_inicio IS NULL
+        """, (tiempo_inicio, current_user['id'], evento[0]))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash(f'Tiempo del evento "{evento[1]}" iniciado correctamente', 'success')
+        return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+    except Exception as e:
+        flash(f'Error al iniciar el tiempo del evento: {str(e)}', 'error')
+        return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+
+def _slug_from_name(nombre, evento_id=None):
     """Convertir nombre de evento a slug para URL"""
     # Convertir a minúsculas y reemplazar espacios con guiones
     slug = nombre.lower()
     slug = re.sub(r'[^\w\s-]', '', slug)  # Remover caracteres especiales
     slug = re.sub(r'[-\s]+', '-', slug)   # Reemplazar espacios y múltiples guiones
-    return slug.strip('-')
+    slug = slug.strip('-')
+    
+    # Si se proporciona el ID, agregarlo al inicio
+    if evento_id:
+        slug = f"{evento_id}-{slug}"
+    
+    return slug
+
+def _evento_url_slug(evento_id, nombre):
+    """Generar slug de URL para un evento"""
+    return _slug_from_name(nombre, evento_id)
+
+# Hacer la función disponible para las plantillas
+@eventos_bp.context_processor
+def inject_evento_url_slug():
+    return dict(evento_url_slug=_evento_url_slug)

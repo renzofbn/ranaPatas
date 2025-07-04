@@ -142,15 +142,30 @@
                             <i class="fas fa-flag mr-2"></i>
                             Estado
                         </h3>
-                        {% if evento.fecha_inicio %}
-                            <span class="tag is-success is-large">
-                                <i class="fas fa-clock mr-1"></i>
+                        {% if evento.estado == 'programado' %}
+                            <span class="tag is-info is-large">
+                                <i class="fas fa-calendar-check mr-1"></i>
                                 Programado
                             </span>
-                        {% else %}
+                        {% elif evento.estado == 'enCurso' %}
                             <span class="tag is-warning is-large">
+                                <i class="fas fa-play mr-1"></i>
+                                En Curso
+                            </span>
+                        {% elif evento.estado == 'completado' %}
+                            <span class="tag is-success is-large">
+                                <i class="fas fa-check mr-1"></i>
+                                Completado
+                            </span>
+                        {% elif evento.estado == 'cancelado' %}
+                            <span class="tag is-danger is-large">
+                                <i class="fas fa-times mr-1"></i>
+                                Cancelado
+                            </span>
+                        {% else %}
+                            <span class="tag is-light is-large">
                                 <i class="fas fa-question mr-1"></i>
-                                Sin fecha
+                                Sin estado
                             </span>
                         {% endif %}
                     </div>
@@ -175,9 +190,43 @@
                                 </span>
                                 <span>Crear nuevo evento</span>
                             </a>
+                            
+                            <!-- Botón para iniciar tiempo del evento -->
+                            {% if not evento.torneo_empezado_en %}
+                            <form method="POST" action="{{ url_for('eventos.iniciar_tiempo', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" 
+                                  onsubmit="return confirm('¿Está seguro de que desea iniciar el tiempo del evento? Esta acción no se puede deshacer.')">
+                                <button type="submit" class="button is-warning is-fullwidth">
+                                    <span class="icon">
+                                        <i class="fas fa-play"></i>
+                                    </span>
+                                    <span>Iniciar Tiempo del Evento</span>
+                                </button>
+                            </form>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </div>
+                    
+                    <!-- Información del inicio del torneo -->
+                    {% if evento.torneo_empezado_en %}
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-stopwatch mr-2"></i>
+                            Información del Torneo
+                        </h3>
+                        <div class="content">
+                            <p><strong>Torneo iniciado:</strong> 
+                                {% set dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                                {% set meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] %}
+                                {{ dias[evento.torneo_empezado_en.weekday()] }}, {{ evento.torneo_empezado_en.day }} de {{ meses[evento.torneo_empezado_en.month - 1] }} de {{ evento.torneo_empezado_en.year }}
+                                a las {{ evento.torneo_empezado_en.strftime('%H:%M:%S') }}
+                            </p>
+                            {% if evento.usuario_iniciado %}
+                            <p><strong>Iniciado por:</strong> {{ evento.usuario_iniciado }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -194,7 +243,7 @@
                                     </h2>
                                 </div>
                             </div>
-                            {% if session.is_admin %}
+                            {% if session.is_admin and not evento.torneo_empezado_en %}
                             <div class="level-right">
                                 <div class="level-item">
                                     <button class="button is-primary" onclick="openModal('modal-agregar-participante')">
@@ -203,6 +252,15 @@
                                         </span>
                                         <span>Agregar Participante</span>
                                     </button>
+                                </div>
+                            </div>
+                            {% elif session.is_admin and evento.torneo_empezado_en %}
+                            <div class="level-right">
+                                <div class="level-item">
+                                    <span class="tag is-warning is-medium">
+                                        <i class="fas fa-lock mr-1"></i>
+                                        No se pueden agregar participantes (evento iniciado)
+                                    </span>
                                 </div>
                             </div>
                             {% endif %}
@@ -398,7 +456,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <a href="/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/{{ participante.codigo }}" class="button is-small is-info" title="Ver Detalles del Participante">
+                                                <a href="/eventos/{{ evento_url_slug(evento.id, evento.nombre) }}/{{ participante.codigo }}" class="button is-small is-info" title="Ver Detalles del Participante">
                                                         <span class="icon">
                                                             <i class="fas fa-eye"></i>
                                                         </span>
@@ -571,6 +629,7 @@
 </style>
 
 <!-- Modal para agregar participante -->
+{% if session.is_admin and not evento.torneo_empezado_en %}
 <div class="modal" id="modal-agregar-participante">
     <div class="modal-background" onclick="closeModal('modal-agregar-participante')"></div>
     <div class="modal-card">
@@ -581,7 +640,7 @@
             </p>
             <button class="delete" onclick="closeModal('modal-agregar-participante')"></button>
         </header>
-        <form method="POST" action="{{ url_for('eventos.agregar_participante', nombre_evento=evento.nombre | replace(' ', '-') | lower) }}">
+        <form method="POST" action="{{ url_for('eventos.agregar_participante', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}">
             <section class="modal-card-body">
                 <div class="field">
                     <label class="label">Código del Participante</label>
@@ -616,6 +675,7 @@
         </form>
     </div>
 </div>
+{% endif %}
 
 <script>
 function openModal(modalId) {
@@ -631,7 +691,7 @@ function confirmarEliminar(nombreParticipante, participanteId) {
         // Crear un formulario temporal para hacer la petición POST
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/eventos/{{ evento.nombre | replace(' ', '-') | lower }}/eliminar-participante/${participanteId}`;
+        form.action = `/eventos/{{ evento_url_slug(evento.id, evento.nombre) }}/eliminar-participante/${participanteId}`;
         
         // Agregar el formulario al body y enviarlo
         document.body.appendChild(form);

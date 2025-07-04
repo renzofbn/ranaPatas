@@ -18,8 +18,16 @@ CREATE TABLE eventos (
     lugar VARCHAR(150),
     observaciones TEXT,
     fecha_inicio DATETIME,
-    FOREIGN KEY (id_usuario_creado) REFERENCES usuarios(id)
+    estado VARCHAR(50),
+    torneo_empezado_en DATETIME,
+    torneo_iniciado_por INT,
+    FOREIGN KEY (id_usuario_creado) REFERENCES usuarios(id),
+    FOREIGN KEY (torneo_iniciado_por) REFERENCES usuarios(id)
 );
+
+-- Script para actualizar tablas existentes (ejecutar solo si la tabla ya existe)
+-- ALTER TABLE eventos ADD COLUMN torneo_iniciado_por INT;
+-- ALTER TABLE eventos ADD FOREIGN KEY (torneo_iniciado_por) REFERENCES usuarios(id);
 
 CREATE TABLE participantes_evento (
     id INT AUTO_INCREMENT PRIMARY KEY,

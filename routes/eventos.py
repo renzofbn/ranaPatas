@@ -600,7 +600,8 @@ def detalle_participante(nombre_evento, codigo_participante):
                 u_agregado.usuario as agregado_por,
                 u_iniciado.usuario as iniciado_por,
                 u_terminado.usuario as terminado_por,
-                p.participante_agregado_por, p.tiempo_iniciado_por, p.tiempo_terminado_por
+                p.participante_agregado_por, p.tiempo_iniciado_por, p.tiempo_terminado_por,
+                p.detalles
             FROM participantes_evento p
             LEFT JOIN usuarios u_agregado ON p.participante_agregado_por = u_agregado.id
             LEFT JOIN usuarios u_iniciado ON p.tiempo_iniciado_por = u_iniciado.id
@@ -658,6 +659,7 @@ def detalle_participante(nombre_evento, codigo_participante):
             'participante_agregado_por_id': participante_raw[10],
             'tiempo_iniciado_por_id': participante_raw[11],
             'tiempo_terminado_por_id': participante_raw[12],
+            'detalles': participante_raw[13],
             'estado': estado
         }
         
@@ -892,6 +894,78 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
         
     except Exception as e:
         return {'success': False, 'error': f'Error al finalizar cronómetro: {str(e)}'}, 500
+
+@eventos_bp.route('/<nombre_evento>/participante/<codigo_participante>/actualizar-detalles', methods=['POST'])
+@require_admin()
+def actualizar_detalles_participante(nombre_evento, codigo_participante):
+    """Actualizar los detalles de un participante"""
+    try:
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                # Si no es un número, usar el método anterior
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("SELECT id FROM eventos WHERE id = %s", (evento_id,))
+        else:
+            # Método fallback: buscar por nombre (para URLs antiguas)
+            cur.execute("SELECT id FROM eventos WHERE nombre = %s", (nombre_evento.replace('-', ' '),))
+        
+        evento = cur.fetchone()
+        if not evento:
+            cur.close()
+            return {'success': False, 'error': 'Evento no encontrado'}, 404
+        
+        evento_id = evento[0]
+        
+        # Verificar que el participante existe
+        cur.execute("""
+            SELECT id FROM participantes_evento 
+            WHERE codigo = %s AND evento_id = %s
+        """, (codigo_participante, evento_id))
+        participante = cur.fetchone()
+        
+        if not participante:
+            cur.close()
+            return {'success': False, 'error': 'Participante no encontrado'}, 404
+        
+        participante_id = participante[0]
+        
+        # Obtener los detalles del JSON
+        data = request.get_json()
+        if not data:
+            cur.close()
+            return {'success': False, 'error': 'No se recibieron datos'}, 400
+        
+        nuevos_detalles = data.get('detalles', '').strip()
+        
+        # Actualizar los detalles
+        cur.execute("""
+            UPDATE participantes_evento 
+            SET detalles = %s
+            WHERE id = %s
+        """, (nuevos_detalles if nuevos_detalles else None, participante_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return {
+            'success': True, 
+            'message': 'Detalles actualizados correctamente',
+            'detalles': nuevos_detalles
+        }
+        
+    except Exception as e:
+        return {'success': False, 'error': f'Error al actualizar detalles: {str(e)}'}, 500
 
 @eventos_bp.route('/todos')
 @require_admin()

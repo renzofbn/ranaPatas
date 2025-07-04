@@ -199,12 +199,12 @@
                             <!-- Información adicional -->
                             <div class="mt-4">
                                 {% if participante.tiempo_total_str %}
-                                    <div class="notification is-success is-light">
+                                    <!-- <div class="notification is-success is-light">
                                         <p class="has-text-weight-semibold">
                                             <i class="fas fa-trophy mr-2"></i>
                                             Tiempo Final Oficial: {{ participante.tiempo_total_str }}
                                         </p>
-                                    </div>
+                                    </div> -->
                                 {% elif participante.tiempo_transcurrido %}
                                     <!-- <div class="notification is-info is-light">
                                         <p class="has-text-weight-semibold">
@@ -291,6 +291,83 @@
                                 </div>
                             </div>
                             {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Detalles del participante -->
+                    <div class="box">
+                        <div class="level">
+                            <div class="level-left">
+                                <div class="level-item">
+                                    <h2 class="title is-4">
+                                        <i class="fas fa-clipboard-list mr-2"></i>
+                                        Detalles del Participante
+                                    </h2>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <div class="level-item">
+                                    {% if session.is_admin %}
+                                    <button class="button is-primary" id="btn-editar-detalles">
+                                        <span class="icon">
+                                            <i class="fas fa-edit"></i>
+                                        </span>
+                                        <span>Editar Detalles</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Vista de detalles -->
+                        <div id="detalles-view" class="content">
+                            {% if participante.detalles %}
+                                <div class="box has-background-light">
+                                    <p class="has-text-grey-darker" style="white-space: pre-wrap;">{{ participante.detalles }}</p>
+                                </div>
+                            {% else %}
+                                <div class="box has-background-light">
+                                    <p class="has-text-grey-dark">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        No hay detalles adicionales registrados para este participante.
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Formulario de edición (oculto por defecto) -->
+                        <div id="detalles-edit" class="content" style="display: none;">
+                            <form id="form-detalles">
+                                <div class="field">
+                                    <label class="label">Detalles del Participante</label>
+                                    <div class="control">
+                                        <textarea 
+                                            class="textarea" 
+                                            id="textarea-detalles" 
+                                            placeholder="Ingresa detalles adicionales sobre el participante..."
+                                            rows="6">{{ participante.detalles or '' }}</textarea>
+                                    </div>
+                                    <p class="help">Puedes agregar notas, observaciones o cualquier información adicional sobre el participante.</p>
+                                </div>
+                                <div class="field is-grouped">
+                                    <div class="control">
+                                        <button type="submit" class="button is-success">
+                                            <span class="icon">
+                                                <i class="fas fa-save"></i>
+                                            </span>
+                                            <span>Guardar Detalles</span>
+                                        </button>
+                                    </div>
+                                    <div class="control">
+                                        <button type="button" class="button is-light" id="btn-cancelar-detalles">
+                                            <span class="icon">
+                                                <i class="fas fa-times"></i>
+                                            </span>
+                                            <span>Cancelar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -740,6 +817,108 @@ function confirmarEliminar(nombreParticipante, participanteId) {
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+// Funciones para manejar la edición de detalles
+document.addEventListener('DOMContentLoaded', function() {
+    const btnEditarDetalles = document.getElementById('btn-editar-detalles');
+    const btnCancelarDetalles = document.getElementById('btn-cancelar-detalles');
+    const formDetalles = document.getElementById('form-detalles');
+    const detallesView = document.getElementById('detalles-view');
+    const detallesEdit = document.getElementById('detalles-edit');
+    const textareaDetalles = document.getElementById('textarea-detalles');
+
+    // Mostrar formulario de edición
+    if (btnEditarDetalles) {
+        btnEditarDetalles.addEventListener('click', function() {
+            detallesView.style.display = 'none';
+            detallesEdit.style.display = 'block';
+            textareaDetalles.focus();
+        });
+    }
+
+    // Cancelar edición
+    if (btnCancelarDetalles) {
+        btnCancelarDetalles.addEventListener('click', function() {
+            detallesView.style.display = 'block';
+            detallesEdit.style.display = 'none';
+            // Restaurar valor original
+            textareaDetalles.value = '{{ participante.detalles or '' }}';
+        });
+    }
+
+    // Guardar detalles
+    if (formDetalles) {
+        formDetalles.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarDetalles();
+        });
+    }
+});
+
+function guardarDetalles() {
+    const textareaDetalles = document.getElementById('textarea-detalles');
+    const btnGuardar = document.querySelector('#form-detalles button[type="submit"]');
+    
+    // Deshabilitar botón mientras se guarda
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-pulse"></i></span><span>Guardando...</span>';
+    
+    // Hacer petición al servidor
+    fetch(`/eventos/{{ evento_url_slug(evento.id, evento.nombre) }}/participante/{{ participante.codigo }}/actualizar-detalles`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            detalles: textareaDetalles.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar vista
+            const detallesView = document.getElementById('detalles-view');
+            const detallesEdit = document.getElementById('detalles-edit');
+            
+            // Actualizar contenido de la vista
+            const nuevosDetalles = textareaDetalles.value.trim();
+            if (nuevosDetalles) {
+                detallesView.innerHTML = `
+                    <div class="box has-background-light">
+                        <p class="has-text-grey-darker" style="white-space: pre-wrap;">${nuevosDetalles}</p>
+                    </div>
+                `;
+            } else {
+                detallesView.innerHTML = `
+                    <div class="box has-background-light">
+                        <p class="has-text-grey-dark">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            No hay detalles adicionales registrados para este participante.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            // Volver a la vista
+            detallesView.style.display = 'block';
+            detallesEdit.style.display = 'none';
+            
+            // Mostrar notificación de éxito
+            mostrarNotificacionTemporal('success', 'Detalles actualizados correctamente');
+        } else {
+            mostrarNotificacionTemporal('error', data.error || 'Error al actualizar detalles');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarNotificacionTemporal('error', 'Error de conexión al actualizar detalles');
+    })
+    .finally(() => {
+        // Restaurar botón
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<span class="icon"><i class="fas fa-save"></i></span><span>Guardar Detalles</span>';
+    });
 }
 </script>
 {% endblock %}

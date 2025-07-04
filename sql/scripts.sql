@@ -43,6 +43,7 @@ CREATE TABLE participantes_evento (
     participante_agregado_por INT NOT NULL,
     evento_id INT NOT NULL,
     usuario_agregado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+    detalles TEXT,
 
     -- Relaciones
     FOREIGN KEY (tiempo_iniciado_por) REFERENCES usuarios(id),
@@ -50,6 +51,8 @@ CREATE TABLE participantes_evento (
     FOREIGN KEY (participante_agregado_por) REFERENCES usuarios(id),
     FOREIGN KEY (evento_id) REFERENCES eventos(id)
 );
+
+-- ALTER TABLE participantes_evento ADD COLUMN detalles TEXT;
 
 -- Datos de ejemplo para participantes (opcional - solo para pruebas)
 -- Asume que ya existen usuarios y eventos en la base de datos

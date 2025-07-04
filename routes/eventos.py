@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from db_connector import get_mysql
 from utils import require_login, get_current_user, require_admin
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import re
 
 # Crear el blueprint para eventos
@@ -655,7 +655,9 @@ def iniciar_cronometro(nombre_evento, codigo_participante):
             return {'success': False, 'error': 'Usuario no autenticado'}, 401
         
         # Actualizar el participante con el tiempo de inicio y usuario
-        ahora = datetime.now()
+        # Configurar timezone GMT-5 (UTC-5)
+        gmt_minus_5 = timezone(timedelta(hours=-5))
+        ahora = datetime.now(gmt_minus_5)
         cur.execute("""
             UPDATE participantes_evento 
             SET tiempo_inicio = %s, tiempo_iniciado_por = %s
@@ -725,7 +727,9 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
             return {'success': False, 'error': 'Usuario no autenticado'}, 401
         
         # Primero guardar el tiempo de llegada
-        ahora = datetime.now()
+        # Configurar timezone GMT-5 (UTC-5)
+        gmt_minus_5 = timezone(timedelta(hours=-5))
+        ahora = datetime.now(gmt_minus_5)
         cur.execute("""
             UPDATE participantes_evento 
             SET tiempo_llegada = %s, tiempo_terminado_por = %s

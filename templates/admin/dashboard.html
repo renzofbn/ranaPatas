@@ -9,35 +9,34 @@
     <!-- Estadísticas -->
     <div class="columns">
       <div class="column">
-        <div class="box has-background-info-light">
+        <div class="box has-background-info-dark">
           <div class="has-text-centered">
             <p class="title is-3 has-text-info">{{ estadisticas.usuarios_pendientes }}</p>
-            <p class="subtitle">Usuarios Pendientes</p>
-            <a href="{{ url_for('admin.usuarios_pendientes') }}" class="button is-info">Ver</a>
+            <p class="subtitle has-text-white">Usuarios Pendientes</p>
           </div>
         </div>
       </div>
       <div class="column">
-        <div class="box has-background-success-light">
+        <div class="box has-background-success-dark">
           <div class="has-text-centered">
             <p class="title is-3 has-text-success">{{ estadisticas.usuarios_aprobados }}</p>
-            <p class="subtitle">Usuarios Aprobados</p>
+            <p class="subtitle has-text-white">Usuarios Aprobados</p>
           </div>
         </div>
       </div>
       <div class="column">
-        <div class="box has-background-warning-light">
+        <div class="box has-background-warning-dark">
           <div class="has-text-centered">
             <p class="title is-3 has-text-warning">{{ estadisticas.usuarios_rechazados }}</p>
-            <p class="subtitle">Usuarios Rechazados</p>
+            <p class="subtitle has-text-white">Usuarios Rechazados</p>
           </div>
         </div>
       </div>
       <div class="column">
-        <div class="box has-background-primary-light">
+        <div class="box has-background-primary-dark">
           <div class="has-text-centered">
             <p class="title is-3 has-text-primary">{{ estadisticas.total_eventos }}</p>
-            <p class="subtitle">Total Eventos</p>
+            <p class="subtitle has-text-white">Total Eventos</p>
           </div>
         </div>
       </div>
@@ -48,26 +47,26 @@
       <h2 class="title is-4">Distribución por Roles</h2>
       <div class="columns">
         <div class="column">
-          <div class="box has-background-light">
+          <div class="box has-background-dark">
             <div class="has-text-centered">
               <p class="title is-4 has-text-grey">{{ estadisticas.participantes }}</p>
-              <p class="subtitle">Participantes</p>
+              <p class="subtitle has-text-white">Participantes</p>
             </div>
           </div>
         </div>
         <div class="column">
-          <div class="box has-background-info-light">
+          <div class="box has-background-info-dark">
             <div class="has-text-centered">
               <p class="title is-4 has-text-info">{{ estadisticas.organizadores }}</p>
-              <p class="subtitle">Organizadores</p>
+              <p class="subtitle has-text-white">Organizadores</p>
             </div>
           </div>
         </div>
         <div class="column">
-          <div class="box has-background-primary-light">
+          <div class="box has-background-primary-dark">
             <div class="has-text-centered">
               <p class="title is-4 has-text-primary">{{ estadisticas.administradores }}</p>
-              <p class="subtitle">Administradores</p>
+              <p class="subtitle has-text-white">Administradores</p>
             </div>
           </div>
         </div>

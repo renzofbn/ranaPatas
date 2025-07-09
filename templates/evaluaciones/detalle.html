@@ -196,7 +196,7 @@
                                 </td>
                                 <td>
                                     {% if participante.fecha_agregacion %}
-                                        <span class="tag is-light">
+                                        <span class="tag is-dark">
                                             <i class="fas fa-calendar-plus mr-1"></i>
                                             {{ participante.fecha_agregacion.strftime('%d/%m/%Y %H:%M') }}
                                         </span>
@@ -295,6 +295,7 @@
                         <li>El cronómetro se inicia y detiene manualmente por los organizadores</li>
                         <li>La duración se calcula automáticamente entre el tiempo de inicio y final</li>
                         <li>Las observaciones permiten agregar notas adicionales sobre cada participante</li>
+                        <li><strong>El mismo usuario puede ser agregado múltiples veces</strong> para realizar diferentes evaluaciones</li>
                     </ul>
                 </div>
             </div>
@@ -332,7 +333,7 @@
                         </div>
                     </div>
                     <input type="hidden" id="usuarioSeleccionadoId" name="usuario_id">
-                    <p class="help">Busca y selecciona un usuario del sistema</p>
+                    <p class="help">Busca y selecciona un usuario del sistema. El mismo usuario puede ser agregado múltiples veces para diferentes evaluaciones.</p>
                 </div>
 
                 <div class="field">

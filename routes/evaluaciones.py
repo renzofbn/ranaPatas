@@ -426,15 +426,6 @@ def agregar_participante(evaluacion_id):
         if not usuario:
             return jsonify({'success': False, 'error': 'Usuario no encontrado o no aprobado'})
         
-        # Verificar que el usuario no esté ya en la evaluación
-        cur.execute("""
-            SELECT id FROM participante_evaluacion 
-            WHERE evaluacion_id = %s AND usuario_id = %s
-        """, (evaluacion_id, usuario_id))
-        
-        if cur.fetchone():
-            return jsonify({'success': False, 'error': f'El usuario {usuario[1]} ya está en esta evaluación'})
-        
         # Agregar el participante con estado pendiente por defecto
         cur.execute("""
             INSERT INTO participante_evaluacion (evaluacion_id, usuario_id, agregado_por, observaciones, estado)
@@ -466,30 +457,16 @@ def buscar_usuarios():
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Buscar usuarios que no estén ya en la evaluación
-        if evaluacion_id:
-            cur.execute("""
-                SELECT u.id, u.usuario, u.nombre, u.correo
-                FROM usuarios u
-                WHERE u.estado_aprobacion = 'aprobado' 
-                  AND (u.usuario LIKE %s OR u.nombre LIKE %s OR u.correo LIKE %s)
-                  AND u.id NOT IN (
-                    SELECT pe.usuario_id 
-                    FROM participante_evaluacion pe 
-                    WHERE pe.evaluacion_id = %s
-                  )
-                ORDER BY u.usuario
-                LIMIT 10
-            """, (f'%{query}%', f'%{query}%', f'%{query}%', evaluacion_id))
-        else:
-            cur.execute("""
-                SELECT u.id, u.usuario, u.nombre, u.correo
-                FROM usuarios u
-                WHERE u.estado_aprobacion = 'aprobado' 
-                  AND (u.usuario LIKE %s OR u.nombre LIKE %s OR u.correo LIKE %s)
-                ORDER BY u.usuario
-                LIMIT 10
-            """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+        # Buscar usuarios aprobados que coincidan con la búsqueda
+        cur.execute("""
+            SELECT u.id, u.usuario, u.nombre, u.correo
+            FROM usuarios u
+            WHERE u.estado_aprobacion = 'aprobado' 
+              AND cuenta_bloqueada = 0
+              AND (u.usuario LIKE %s OR u.nombre LIKE %s OR u.correo LIKE %s)
+            ORDER BY u.usuario
+            LIMIT 10
+        """, (f'%{query}%', f'%{query}%', f'%{query}%'))
         
         usuarios = cur.fetchall()
         cur.close()
@@ -712,3 +689,51 @@ def cronometro_participante(evaluacion_id, participante_id):
         
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error al procesar acción del cronómetro: {str(e)}'})
+
+@evaluaciones_bp.route('/editar_observaciones/<int:evaluacion_id>/<int:participante_id>', methods=['POST'])
+@require_admin_evaluaciones()
+def editar_observaciones(evaluacion_id, participante_id):
+    """Editar observaciones de un participante en una evaluación"""
+    try:
+        observaciones = request.form.get('observaciones', '').strip()
+        
+        current_user = get_current_user()
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Verificar que la evaluación existe
+        cur.execute("SELECT id, nombre FROM evaluaciones WHERE id = %s", (evaluacion_id,))
+        evaluacion = cur.fetchone()
+        
+        if not evaluacion:
+            return jsonify({'success': False, 'error': 'Evaluación no encontrada'})
+        
+        # Verificar que el participante existe en esta evaluación
+        cur.execute("""
+            SELECT pe.id, u.usuario 
+            FROM participante_evaluacion pe
+            JOIN usuarios u ON pe.usuario_id = u.id
+            WHERE pe.id = %s AND pe.evaluacion_id = %s
+        """, (participante_id, evaluacion_id))
+        
+        participante = cur.fetchone()
+        if not participante:
+            return jsonify({'success': False, 'error': 'Participante no encontrado en esta evaluación'})
+        
+        # Actualizar las observaciones
+        cur.execute("""
+            UPDATE participante_evaluacion 
+            SET observaciones = %s
+            WHERE id = %s AND evaluacion_id = %s
+        """, (observaciones if observaciones else None, participante_id, evaluacion_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Observaciones actualizadas para {participante[1]}'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error al actualizar observaciones: {str(e)}'})

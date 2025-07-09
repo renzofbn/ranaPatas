@@ -399,21 +399,23 @@ def api_usuarios():
         cur = mysql.connection.cursor()
         
         if query:
-            # Buscar usuarios que coincidan con el query y que no estén rechazados
+            # Buscar usuarios que coincidan con el query y que no estén rechazados ni bloqueados
             cur.execute("""
                 SELECT id, nombre, usuario 
                 FROM usuarios 
                 WHERE (nombre LIKE %s OR usuario LIKE %s)
                 AND estado_aprobacion != 'rechazado'
+                AND cuenta_bloqueada = 0
                 ORDER BY nombre ASC 
                 LIMIT 10
             """, (f'%{query}%', f'%{query}%'))
         else:
-            # Obtener todos los usuarios que no estén rechazados
+            # Obtener todos los usuarios que no estén rechazados ni bloqueados
             cur.execute("""
                 SELECT id, nombre, usuario 
                 FROM usuarios 
                 WHERE estado_aprobacion != 'rechazado'
+                AND cuenta_bloqueada = 0
                 ORDER BY nombre ASC 
                 LIMIT 20
             """)

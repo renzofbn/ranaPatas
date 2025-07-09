@@ -11,7 +11,7 @@
                 <div class="level-left">
                     <div class="level-item">
                         <div>
-                            <h1 class="title is-3">
+                            <h1 class="title is-3 mb-2">
                                 <i class="fas fa-user-clock mr-2"></i>
                                 {{ participante.usuario }}
                             </h1>
@@ -105,24 +105,46 @@
                             </div>
                         </div>
 
-                        <div class="field">
+                        <!-- <div class="field">
                             <label class="label">Agregado a la evaluación</label>
                             <div class="control">
                                 <p>{{ participante.fecha_agregacion.strftime('%d/%m/%Y %H:%M') if participante.fecha_agregacion else '-' }}</p>
                                 <p class="help">por {{ participante.agregado_por_usuario }}</p>
                             </div>
-                        </div>
+                        </div> -->
 
-                        {% if participante.observaciones %}
                         <div class="field">
                             <label class="label">Observaciones</label>
                             <div class="control">
-                                <div class="content">
-                                    <p>{{ participante.observaciones }}</p>
+                                <div class="box has-background-info-dark">
+                                    <div class="level">
+                                        <div class="level-left">
+                                            <div class="level-item">
+                                                <div class="content has-text-white">
+                                                    {% if participante.observaciones %}
+                                                        <p>{{ participante.observaciones }}</p>
+                                                    {% else %}
+                                                        <p class="has-text-grey"><em>Sin observaciones</em></p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% if can_manage %}
+                                        <div class="level-right">
+                                            <div class="level-item">
+                                                <button class="button is-small is-info" onclick="abrirModalEditarObservaciones()" title="Editar observaciones">
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-edit"></i>
+                                                    </span>
+                                                    <span>Editar</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -137,7 +159,7 @@
                         <!-- Cronómetro -->
                         <div class="has-text-centered mb-5">
                             {% set current_estado = participante.estado or 'pendiente' %}
-                            <div class="box has-background-dark has-text-white">
+                            <div class="box has-background-primary-dark has-text-white">
                                 <p class="title is-1 has-text-white mb-2" id="cronometro">
                                     {% if participante.duracion %}
                                         {{ participante.duracion }}
@@ -202,21 +224,18 @@
                         <!-- Información de tiempos -->
                         <div class="columns">
                             <div class="column">
-                                <div class="box has-text-centered">
+                                <div class="box has-text-centered has-background-info-dark has-text-white">
                                     <p class="heading">Tiempo de Inicio</p>
-                                    <p class="title is-4">
+                                    <p class="title is-4 has-text-white">
                                         {% if participante.tiempo_inicio %}
                                             {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
                                         {% else %}
                                             <span class="has-text-grey">-</span>
                                         {% endif %}
                                     </p>
-                                    <p class="subtitle is-6">
+                                    <p class="subtitle is-6 has-text-white">
                                         {% if participante.tiempo_inicio %}
                                             {{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}
-                                            {% if participante.iniciado_por_usuario %}
-                                            <br><small class="has-text-grey">por {{ participante.iniciado_por_usuario }}</small>
-                                            {% endif %}
                                         {% else %}
                                             No iniciado
                                         {% endif %}
@@ -224,21 +243,18 @@
                                 </div>
                             </div>
                             <div class="column">
-                                <div class="box has-text-centered">
+                                <div class="box has-text-centered has-background-success-dark has-text-white">
                                     <p class="heading">Tiempo Final</p>
-                                    <p class="title is-4">
+                                    <p class="title is-4 has-text-white">
                                         {% if participante.tiempo_final %}
                                             {{ participante.tiempo_final.strftime('%H:%M:%S') }}
                                         {% else %}
                                             <span class="has-text-grey">-</span>
                                         {% endif %}
                                     </p>
-                                    <p class="subtitle is-6">
+                                    <p class="subtitle is-6 has-text-white">
                                         {% if participante.tiempo_final %}
                                             {{ participante.tiempo_final.strftime('%d/%m/%Y') }}
-                                            {% if participante.terminado_por_usuario %}
-                                            <br><small class="has-text-grey">por {{ participante.terminado_por_usuario }}</small>
-                                            {% endif %}
                                         {% else %}
                                             No terminado
                                         {% endif %}
@@ -320,6 +336,44 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para editar observaciones -->
+{% if can_manage %}
+<div class="modal" id="modalEditarObservaciones">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <i class="fas fa-edit mr-2"></i>
+                Editar Observaciones
+            </p>
+            <button class="delete" aria-label="close" onclick="cerrarModalEditarObservaciones()"></button>
+        </header>
+        <section class="modal-card-body">
+            <form id="formEditarObservaciones">
+                <div class="field">
+                    <label class="label">Observaciones</label>
+                    <div class="control">
+                        <textarea class="textarea" id="observacionesTexto" 
+                                  placeholder="Escribe observaciones sobre este participante..." 
+                                  rows="5">{{ participante.observaciones or '' }}</textarea>
+                    </div>
+                    <p class="help">Puedes agregar notas, comentarios o detalles específicos sobre este participante en la evaluación.</p>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" onclick="guardarObservaciones()">
+                <span class="icon">
+                    <i class="fas fa-save"></i>
+                </span>
+                <span>Guardar Cambios</span>
+            </button>
+            <button class="button" onclick="cerrarModalEditarObservaciones()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -408,9 +462,55 @@ function enviarAccionCronometro(accion) {
     });
 }
 
+function abrirModalEditarObservaciones() {
+    const modal = document.getElementById('modalEditarObservaciones');
+    const textarea = document.getElementById('observacionesTexto');
+    
+    // El valor ya está establecido en el HTML, solo mostramos el modal
+    modal.classList.add('is-active');
+    textarea.focus();
+}
+
+function cerrarModalEditarObservaciones() {
+    const modal = document.getElementById('modalEditarObservaciones');
+    modal.classList.remove('is-active');
+}
+
+function guardarObservaciones() {
+    const observaciones = document.getElementById('observacionesTexto').value.trim();
+    
+    const formData = new FormData();
+    formData.append('observaciones', observaciones);
+    
+    fetch(`/evaluaciones/editar_observaciones/{{ evaluacion.id }}/{{ participante.id }}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cerrarModalEditarObservaciones();
+            location.reload(); // Recargar para mostrar los cambios
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar las observaciones');
+    });
+}
+
 // Limpiar intervalo cuando se cierra la página
 window.addEventListener('beforeunload', function() {
     detenerCronometroVivo();
+});
+
+// Cerrar modal al presionar ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        cerrarModalEditarObservaciones();
+    }
 });
 </script>
 
@@ -483,6 +583,31 @@ window.addEventListener('beforeunload', function() {
     margin-bottom: 0.25rem;
 }
 
+/* Estilos para el modal de observaciones */
+.modal-card {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#observacionesTexto {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Estilos para la sección de observaciones */
+.field .box.has-background-light {
+    border: 1px solid #dbdbdb;
+    margin-bottom: 0;
+}
+
+.field .box.has-background-light .content {
+    margin-bottom: 0;
+}
+
+.field .box.has-background-light .level {
+    margin-bottom: 0;
+}
+
 @media screen and (max-width: 768px) {
     .columns {
         display: block;
@@ -499,6 +624,20 @@ window.addEventListener('beforeunload', function() {
     
     .timeline-marker {
         left: -1.25rem;
+    }
+    
+    .modal-card {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    /* En móviles, ajustar el level de observaciones */
+    .field .box.has-background-light .level {
+        display: block;
+    }
+    
+    .field .box.has-background-light .level-right {
+        margin-top: 0.5rem;
     }
 }
 </style>

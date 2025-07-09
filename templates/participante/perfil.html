@@ -18,13 +18,13 @@
                                     </figure>
                                 </div>
                                 <div class="media-content">
-                                    <h1 class="title is-2">
+                                    <h1 class="title is-2 mb-2">
                                         <i class="fas fa-user mr-2 has-text-primary"></i>
                                         {{ usuario.nombre }}
                                     </h1>
-                                    <p class="subtitle is-5 has-text-grey">
+                                    <p class="subtitle is-5 has-text-grey mb-1">
                                         <i class="fas fa-at mr-1"></i>
-                                        @{{ usuario.usuario }}
+                                        {{ usuario.usuario }}
                                     </p>
                                     {% if usuario.fecha_registro %}
                                     <p class="subtitle is-6 has-text-grey">
@@ -139,11 +139,28 @@
 
                 <!-- Mostrar evaluaciones agrupadas -->
                 {% for nombre_evaluacion, grupo_evaluaciones in evaluaciones_agrupadas.items() %}
-                <div class="box mb-4 has-background-light">
-                    <h3 class="title is-5 has-text-primary">
-                        <i class="fas fa-clipboard-list mr-2"></i>
-                        {{ nombre_evaluacion }}
-                    </h3>
+                <div class="box mb-4">
+                    <div class="level mb-2">
+                        <div class="level-left">
+                            <div class="level-item">
+                                <h3 class="title is-5 has-text-primary mb-0">
+                                    <i class="fas fa-clipboard-list mr-2"></i>
+                                    {{ nombre_evaluacion }}
+                                </h3>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <div class="level-item">
+                                <a href="{{ url_for('evaluaciones.detalle', evaluacion_id=grupo_evaluaciones[0].evaluacion_id) }}" 
+                                   class="button is-small is-info">
+                                    <span class="icon is-small">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </span>
+                                    <span>Ver Evaluación</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     
                     {% if grupo_evaluaciones[0].observacion %}
                     <p class="subtitle is-6 has-text-grey mb-4">
@@ -156,104 +173,115 @@
                     <div class="columns is-multiline">
                         {% for evaluacion in grupo_evaluaciones %}
                         <div class="column is-6">
-                            <div class="box">
-                                <div class="level">
-                                    <div class="level-left">
-                                        <div class="level-item">
-                                            <div class="content">
-                                                <p class="heading">
-                                                    <i class="fas fa-stopwatch mr-1"></i>
-                                                    Tiempo {{ loop.index }}
-                                                </p>
-                                                {% if evaluacion.tiempo_total_str %}
-                                                <p class="title is-4 has-text-primary">
-                                                    {{ evaluacion.tiempo_total_str }}
-                                                </p>
-                                                {% else %}
-                                                <p class="title is-5 has-text-grey">
-                                                    {% if evaluacion.estado == 'pendiente' %}
-                                                        <i class="fas fa-clock mr-1"></i>
-                                                        Pendiente
-                                                    {% elif evaluacion.estado == 'en_progreso' %}
+                            <a href="{{ url_for('evaluaciones.detalle_participante', evaluacion_id=evaluacion.evaluacion_id, participante_id=evaluacion.participante_id) }}" 
+                               class="has-text-white" style="text-decoration: none;">
+                                <div class="box has-background-primary-dark has-text-white tiempo-box">
+                                    <div class="level">
+                                        <div class="level-left">
+                                            <div class="level-item">
+                                                <div class="content">
+                                                    <p class="heading">
+                                                        <i class="fas fa-stopwatch mr-1"></i>
+                                                        Tiempo {{ loop.index }}
+                                                    </p>
+                                                    {% if evaluacion.tiempo_total_str %}
+                                                    <p class="title is-4 has-text-primary">
+                                                        {{ evaluacion.tiempo_total_str }}
+                                                    </p>
+                                                    {% else %}
+                                                    <p class="title is-5 has-text-grey">
+                                                        {% if evaluacion.estado == 'pendiente' %}
+                                                            <i class="fas fa-clock mr-1"></i>
+                                                            Pendiente
+                                                        {% elif evaluacion.estado == 'en_progreso' %}
+                                                            <i class="fas fa-running mr-1"></i>
+                                                            En Progreso
+                                                        {% elif evaluacion.estado == 'cancelada' %}
+                                                            <i class="fas fa-times-circle mr-1"></i>
+                                                            Cancelada
+                                                        {% else %}
+                                                            <i class="fas fa-question-circle mr-1"></i>
+                                                            Sin tiempo
+                                                        {% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="level-right">
+                                            <div class="level-item">
+                                                <!-- Estado -->
+                                                {% if evaluacion.estado == 'completada' %}
+                                                    <span class="tag is-success">
+                                                        <i class="fas fa-check mr-1"></i>
+                                                        Completada
+                                                    </span>
+                                                {% elif evaluacion.estado == 'en_progreso' %}
+                                                    <span class="tag is-warning">
                                                         <i class="fas fa-running mr-1"></i>
                                                         En Progreso
-                                                    {% elif evaluacion.estado == 'cancelada' %}
+                                                    </span>
+                                                {% elif evaluacion.estado == 'cancelada' %}
+                                                    <span class="tag is-danger">
                                                         <i class="fas fa-times-circle mr-1"></i>
                                                         Cancelada
-                                                    {% else %}
-                                                        <i class="fas fa-question-circle mr-1"></i>
-                                                        Sin tiempo
-                                                    {% endif %}
-                                                </p>
+                                                    </span>
+                                                {% else %}
+                                                    <span class="tag is-info">
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        Pendiente
+                                                    </span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="level-right">
-                                        <div class="level-item">
-                                            <!-- Estado -->
-                                            {% if evaluacion.estado == 'completada' %}
-                                                <span class="tag is-success">
-                                                    <i class="fas fa-check mr-1"></i>
-                                                    Completada
-                                                </span>
-                                            {% elif evaluacion.estado == 'en_progreso' %}
-                                                <span class="tag is-warning">
-                                                    <i class="fas fa-running mr-1"></i>
-                                                    En Progreso
-                                                </span>
-                                            {% elif evaluacion.estado == 'cancelada' %}
-                                                <span class="tag is-danger">
-                                                    <i class="fas fa-times-circle mr-1"></i>
-                                                    Cancelada
-                                                </span>
-                                            {% else %}
-                                                <span class="tag is-info">
-                                                    <i class="fas fa-clock mr-1"></i>
-                                                    Pendiente
-                                                </span>
+
+                                    <!-- Información adicional -->
+                                    <div class="content is-small">
+                                        {% if evaluacion.fecha_agregacion %}
+                                        <p class="has-text-grey-light">
+                                            <i class="fas fa-calendar-plus mr-1"></i>
+                                            Agregado: {{ evaluacion.fecha_agregacion.strftime('%d/%m/%Y a las %H:%M') }}
+                                        </p>
+                                        {% endif %}
+                                        
+                                        {% if evaluacion.tiempo_inicio %}
+                                        <p class="has-text-grey-light">
+                                            <i class="fas fa-play mr-1"></i>
+                                            Iniciado: {{ evaluacion.tiempo_inicio.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                            {% if evaluacion.iniciado_por %}
+                                            por @{{ evaluacion.iniciado_por }}
                                             {% endif %}
-                                        </div>
+                                        </p>
+                                        {% endif %}
+                                        
+                                        {% if evaluacion.tiempo_final %}
+                                        <p class="has-text-grey-light">
+                                            <i class="fas fa-stop mr-1"></i>
+                                            Finalizado: {{ evaluacion.tiempo_final.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                            {% if evaluacion.terminado_por %}
+                                            por @{{ evaluacion.terminado_por }}
+                                            {% endif %}
+                                        </p>
+                                        {% endif %}
+
+                                        {% if evaluacion.participacion_observaciones %}
+                                        <p class="has-text-grey-light">
+                                            <i class="fas fa-comment mr-1"></i>
+                                            {{ evaluacion.participacion_observaciones }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Indicador de que es clickeable -->
+                                    <div class="has-text-right">
+                                        <span class="tag is-light is-small">
+                                            <i class="fas fa-eye mr-1"></i>
+                                            Ver detalles
+                                        </span>
                                     </div>
                                 </div>
-
-                                <!-- Información adicional -->
-                                <div class="content is-small">
-                                    {% if evaluacion.fecha_agregacion %}
-                                    <p class="has-text-grey">
-                                        <i class="fas fa-calendar-plus mr-1"></i>
-                                        Agregado: {{ evaluacion.fecha_agregacion.strftime('%d/%m/%Y a las %H:%M') }}
-                                    </p>
-                                    {% endif %}
-                                    
-                                    {% if evaluacion.tiempo_inicio %}
-                                    <p class="has-text-grey">
-                                        <i class="fas fa-play mr-1"></i>
-                                        Iniciado: {{ evaluacion.tiempo_inicio.strftime('%d/%m/%Y a las %H:%M:%S') }}
-                                        {% if evaluacion.iniciado_por %}
-                                        por @{{ evaluacion.iniciado_por }}
-                                        {% endif %}
-                                    </p>
-                                    {% endif %}
-                                    
-                                    {% if evaluacion.tiempo_final %}
-                                    <p class="has-text-grey">
-                                        <i class="fas fa-stop mr-1"></i>
-                                        Finalizado: {{ evaluacion.tiempo_final.strftime('%d/%m/%Y a las %H:%M:%S') }}
-                                        {% if evaluacion.terminado_por %}
-                                        por @{{ evaluacion.terminado_por }}
-                                        {% endif %}
-                                    </p>
-                                    {% endif %}
-
-                                    {% if evaluacion.participacion_observaciones %}
-                                    <p class="has-text-grey">
-                                        <i class="fas fa-comment mr-1"></i>
-                                        {{ evaluacion.participacion_observaciones }}
-                                    </p>
-                                    {% endif %}
-                                </div>
-                            </div>
+                            </a>
                         </div>
                         {% endfor %}
                     </div>
@@ -267,16 +295,16 @@
                     {% endfor %}
 
                     {% if tiempos_evaluacion %}
-                    <div class="box has-background-primary-light">
+                    <div class="box has-background-primary-dark">
                         <div class="columns">
                             <div class="column is-4">
                                 <div class="has-text-centered">
-                                    <p class="heading">Mejor Tiempo</p>
+                                    <p class="heading has-text-white">Mejor Tiempo</p>
                                     {% set mejor_tiempo = tiempos_evaluacion | min %}
                                     {% set horas = (mejor_tiempo // 3600) | int %}
                                     {% set minutos = ((mejor_tiempo % 3600) // 60) | int %}
                                     {% set segundos = (mejor_tiempo % 60) | int %}
-                                    <p class="title is-5">
+                                    <p class="title is-5 has-text-white">
                                         {% if horas > 0 %}
                                             {{ "%02d:%02d:%02d"|format(horas, minutos, segundos) }}
                                         {% else %}
@@ -286,13 +314,13 @@
                                 </div>
                             </div>
                             <div class="column is-4">
-                                <div class="has-text-centered">
-                                    <p class="heading">Tiempo Promedio</p>
+                                <div class="has-text-centered has-text-white">
+                                    <p class="heading has-text-white">Tiempo Promedio</p>
                                     {% set promedio_tiempo = (tiempos_evaluacion | sum) / (tiempos_evaluacion | length) %}
                                     {% set horas = (promedio_tiempo // 3600) | int %}
                                     {% set minutos = ((promedio_tiempo % 3600) // 60) | int %}
                                     {% set segundos = (promedio_tiempo % 60) | int %}
-                                    <p class="title is-5">
+                                    <p class="title is-5 has-text-white">
                                         {% if horas > 0 %}
                                             {{ "%02d:%02d:%02d"|format(horas, minutos, segundos) }}
                                         {% else %}
@@ -302,9 +330,9 @@
                                 </div>
                             </div>
                             <div class="column is-4">
-                                <div class="has-text-centered">
-                                    <p class="heading">Total Completados</p>
-                                    <p class="title is-5">{{ tiempos_evaluacion | length }} / {{ grupo_evaluaciones | length }}</p>
+                                <div class="has-text-centered has-text-white">
+                                    <p class="heading has-text-white">Total Completados</p>
+                                    <p class="title is-5 has-text-white">{{ tiempos_evaluacion | length }} / {{ grupo_evaluaciones | length }}</p>
                                 </div>
                             </div>
                         </div>
@@ -542,6 +570,43 @@
     margin-bottom: 0.5rem;
 }
 
+/* Estilos para evaluaciones clickeables */
+.tiempo-box {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.tiempo-box:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tiempo-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.tiempo-box:hover::before {
+    opacity: 1;
+}
+
+/* Asegurar que el texto blanco se mantenga */
+.tiempo-box a.has-text-white,
+.tiempo-box a.has-text-white:hover,
+.tiempo-box a.has-text-white:focus {
+    color: white !important;
+    text-decoration: none !important;
+}
+
 /* Estilos para responsive */
 @media screen and (max-width: 768px) {
     .columns.is-mobile .column.is-4.has-text-right {
@@ -554,6 +619,12 @@
     
     .field.is-grouped.is-grouped-right {
         justify-content: flex-start !important;
+    }
+    
+    /* Reducir el efecto hover en móviles */
+    .tiempo-box:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
     }
 }
 

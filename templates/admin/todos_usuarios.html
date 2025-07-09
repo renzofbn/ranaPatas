@@ -78,23 +78,22 @@
         <table class="table is-fullwidth is-hoverable" id="tabla-usuarios">
           <thead>
             <tr>
-              <th>Nombre</th>
               <th>Usuario</th>
               <th>Correo</th>
               <th>Estado</th>
               <th>Rol Asignado</th>
-              <th>Fecha Registro</th>
-              <th>Fecha Aprobación</th>
-              <th>Aprobado/Rechazado por</th>
+              <th>Registrado el</th>
+              <th>Procesado el</th>
+              <th>Por</th>
               <th>Observaciones</th>
             </tr>
           </thead>
           <tbody>
             {% for usuario in usuarios %}
             <tr data-estado="{{ usuario[4] }}" data-rol="{{ usuario[8] or 1 }}" data-busqueda="{{ (usuario[1] + ' ' + usuario[2] + ' ' + usuario[3])|lower }}">
-              <td>
+              <!-- <td>
                 <strong>{{ usuario[1] }}</strong>
-              </td>
+              </td> -->
               <td>
                 <span class="tag is-info">{{ usuario[2] }}</span>
               </td>
@@ -123,52 +122,81 @@
                   </span>
                 {% endif %}
               </td>
-              <td>
-                {% set rol_id = usuario[8] or 1 %}
-                {% if rol_id == 1 %}
+                <td>
+                {% if usuario[4] == 'rechazado' %}
                   <span class="tag is-light">
+                  <span class="icon has-text-grey-dark">
+                    <i class="fas fa-minus"></i>
+                  </span>
+                  <span class="has-text-grey-dark">Sin rol</span>
+                  </span>
+                {% else %}
+                  {% set rol_id = usuario[8] or 1 %}
+                  {% if rol_id == 1 %}
+                  <span class="tag is-dark">
                     <span class="icon">
-                      <i class="fas fa-user"></i>
+                    <i class="fas fa-user"></i>
                     </span>
                     <span>Participante</span>
                   </span>
-                {% elif rol_id == 2 %}
+                  {% elif rol_id == 2 %}
                   <span class="tag is-info">
                     <span class="icon">
-                      <i class="fas fa-calendar-alt"></i>
+                    <i class="fas fa-calendar-alt"></i>
                     </span>
                     <span>Organizador</span>
                   </span>
-                {% elif rol_id == 3 %}
+                  {% elif rol_id == 3 %}
                   <span class="tag is-primary">
                     <span class="icon">
-                      <i class="fas fa-crown"></i>
+                    <i class="fas fa-crown"></i>
                     </span>
                     <span>Administrador</span>
                   </span>
-                {% else %}
-                  <span class="tag is-light">
+                  {% else %}
+                  <span class="tag is-dark">
                     <span class="icon">
-                      <i class="fas fa-user"></i>
+                    <i class="fas fa-user"></i>
                     </span>
                     <span>Participante</span>
                   </span>
+                  {% endif %}
                 {% endif %}
-              </td>
+                </td>
               <td>
-                <span class="has-text-grey-dark">
-                  {{ usuario[5].strftime('%d/%m/%Y %H:%M') if usuario[5] else '-' }}
-                </span>
-              </td>
-              <td>
-                {% if usuario[6] %}
-                  <span class="has-text-grey-dark">
-                    {{ usuario[6].strftime('%d/%m/%Y %H:%M') }}
+                {% if usuario[5] %}
+                  <span class="tag is-dark">
+                  <span class="icon">
+                    <i class="fas fa-calendar-plus"></i>
+                  </span>
+                  <span>{{ usuario[5].strftime('%d/%m/%Y') }}</span>
                   </span>
                 {% else %}
-                  <span class="has-text-grey">Sin procesar</span>
+                  <span class="tag is-grey-dark">
+                  <span class="icon">
+                    <i class="fas fa-minus"></i>
+                  </span>
+                  <span>Sin fecha</span>
+                  </span>
                 {% endif %}
               </td>
+                <td>
+                {% if usuario[6] %}
+                  <span class="tag is-primary is-light">
+                  <span class="icon">
+                    <i class="fas fa-clock"></i>
+                  </span>
+                  <span>{{ usuario[6].strftime('%d/%m/%Y') }}</span>
+                  </span>
+                {% else %}
+                  <span class="tag is-grey">
+                  <span class="icon">
+                    <i class="fas fa-minus"></i>
+                  </span>
+                  <span>Sin procesar</span>
+                  </span>
+                {% endif %}
+                </td>
               <td>
                 {% if usuario[9] %}
                   <span class="tag is-info is-light">

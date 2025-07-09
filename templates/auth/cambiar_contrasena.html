@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Cambiar Contraseña{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+        <div class="box">
+          <h2 class="title is-4 has-text-centered">Cambiar Contraseña</h2>
+          
+          <!-- Información importante -->
+          <div class="notification is-info is-light">
+            <div class="content">
+              <p><strong>Información de seguridad:</strong></p>
+              <ul class="is-size-7">
+                <li>Al cambiar tu contraseña, se cerrarán automáticamente todas tus sesiones activas en otros dispositivos</li>
+                <li>Serás reconectado automáticamente en este dispositivo</li>
+                <li>Esta medida protege tu cuenta en caso de acceso no autorizado</li>
+              </ul>
+            </div>
+          </div>
+          
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                  <button class="delete"></button>
+                  {{ message }}
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          
+          <form method="POST">
+            <div class="field">
+              <label class="label">Contraseña Actual</label>
+              <div class="control has-icons-left">
+                <input class="input" type="password" name="contrasena_actual" 
+                       placeholder="Ingresa tu contraseña actual" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-lock"></i>
+                </span>
+              </div>
+            </div>
+            
+            <div class="field">
+              <label class="label">Nueva Contraseña</label>
+              <div class="control has-icons-left">
+                <input class="input" type="password" name="nueva_contrasena" 
+                       id="nueva_contrasena" placeholder="Ingresa la nueva contraseña" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-key"></i>
+                </span>
+              </div>
+              <p class="help">La contraseña debe tener al menos 6 caracteres</p>
+            </div>
+            
+            <div class="field">
+              <label class="label">Confirmar Nueva Contraseña</label>
+              <div class="control has-icons-left">
+                <input class="input" type="password" name="confirmar_contrasena" 
+                       id="confirmar_contrasena" placeholder="Confirma la nueva contraseña" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-key"></i>
+                </span>
+              </div>
+            </div>
+            
+            <div class="field is-grouped">
+              <div class="control is-expanded">
+                <button class="button is-primary is-fullwidth" type="submit">
+                  <span class="icon">
+                    <i class="fas fa-save"></i>
+                  </span>
+                  <span>Cambiar Contraseña</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="field">
+              <div class="control">
+                <a href="{{ url_for('auth.perfil') }}" class="button is-light is-fullwidth">
+                  <span class="icon">
+                    <i class="fas fa-arrow-left"></i>
+                  </span>
+                  <span>Cancelar</span>
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const nuevaContrasena = document.getElementById('nueva_contrasena');
+    const confirmarContrasena = document.getElementById('confirmar_contrasena');
+    
+    // Añadir funcionalidad para cerrar notificaciones
+    (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+        const $notification = $delete.parentNode;
+        $delete.addEventListener('click', () => {
+            $notification.parentNode.removeChild($notification);
+        });
+    });
+    
+    function validarContrasenas() {
+        if (nuevaContrasena.value !== confirmarContrasena.value) {
+            confirmarContrasena.setCustomValidity('Las contraseñas no coinciden');
+            confirmarContrasena.classList.add('is-danger');
+        } else {
+            confirmarContrasena.setCustomValidity('');
+            confirmarContrasena.classList.remove('is-danger');
+            if (confirmarContrasena.value) {
+                confirmarContrasena.classList.add('is-success');
+            }
+        }
+    }
+    
+    // Validación en tiempo real de fortaleza de contraseña
+    function validarFortaleza() {
+        const password = nuevaContrasena.value;
+        if (password.length >= 6) {
+            nuevaContrasena.classList.remove('is-danger');
+            nuevaContrasena.classList.add('is-success');
+        } else if (password.length > 0) {
+            nuevaContrasena.classList.remove('is-success');
+            nuevaContrasena.classList.add('is-danger');
+        } else {
+            nuevaContrasena.classList.remove('is-success', 'is-danger');
+        }
+    }
+    
+    nuevaContrasena.addEventListener('input', function() {
+        validarFortaleza();
+        validarContrasenas();
+    });
+    
+    confirmarContrasena.addEventListener('input', validarContrasenas);
+});
+</script>
+{% endblock %}

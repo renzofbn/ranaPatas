@@ -22,28 +22,52 @@
           <div class="columns">
             <div class="column is-4">
               <figure class="image is-128x128">
-                <img class="is-rounded" src="/static/ranas.jpeg" alt="Avatar">
+                <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ (user.nombre or user.usuario) | urlencode }}&background=3273dc&color=fff&size=128" alt="Avatar">
               </figure>
             </div>
             <div class="column is-8">
               <div class="content">
                 <h2 class="subtitle">Información Personal</h2>
+                {% if user.nombre %}
+                <p><strong>Nombre:</strong> {{ user.nombre }}</p>
+                {% endif %}
                 <p><strong>Usuario:</strong> {{ user.usuario }}</p>
                 <p><strong>Correo:</strong> {{ user.correo }}</p>
+                {% if user.fecha_registro %}
+                <p><strong>Miembro desde:</strong> {{ user.fecha_registro.strftime('%d de %B de %Y') }}</p>
+                {% endif %}
+                {% if user.ultimo_login %}
+                <p><strong>Último acceso:</strong> {{ user.ultimo_login.strftime('%d de %B de %Y a las %H:%M') }}</p>
+                {% endif %}
                 <!-- <p><strong>ID:</strong> {{ user.id }}</p> -->
-                {% if user.is_admin %}
-                  <span class="tag is-danger is-medium">
+                {% set rol_usuario = user.rol or 1 %}
+                {% if rol_usuario == 1 %}
+                  <span class="tag is-light is-medium">
+                    <span class="icon">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <span>Participante</span>
+                  </span>
+                {% elif rol_usuario == 2 %}
+                  <span class="tag is-info is-medium">
+                    <span class="icon">
+                      <i class="fas fa-calendar-alt"></i>
+                    </span>
+                    <span>Organizador</span>
+                  </span>
+                {% elif rol_usuario == 3 %}
+                  <span class="tag is-primary is-medium">
                     <span class="icon">
                       <i class="fas fa-crown"></i>
                     </span>
                     <span>Administrador</span>
                   </span>
                 {% else %}
-                  <span class="tag is-info is-medium">
+                  <span class="tag is-light is-medium">
                     <span class="icon">
                       <i class="fas fa-user"></i>
                     </span>
-                    <span>Usuario</span>
+                    <span>Participante</span>
                   </span>
                 {% endif %}
               </div>
@@ -52,19 +76,51 @@
           
           <hr>
           
-          <div class="buttons">
-            <!-- <button class="button is-primary">
+          <!-- Estadísticas del usuario -->
+          <div class="box">
+            <h3 class="subtitle is-5">
               <span class="icon">
-                <i class="fas fa-edit"></i>
+                <i class="fas fa-chart-bar"></i>
               </span>
-              <span>Editar Perfil</span>
-            </button> -->
-            <!-- <button class="button is-warning">
+              Estadísticas
+            </h3>
+            <div class="columns">
+              <div class="column has-text-centered">
+                <div class="title is-4 has-text-primary">{{ user.total_participaciones or 0 }}</div>
+                <div class="subtitle is-6">Participaciones</div>
+              </div>
+              <div class="column has-text-centered">
+                <div class="title is-4 has-text-success">{{ user.eventos_completados or 0 }}</div>
+                <div class="subtitle is-6">Completados</div>
+              </div>
+              <div class="column has-text-centered">
+                <div class="title is-4 has-text-warning">{{ user.eventos_en_progreso or 0 }}</div>
+                <div class="subtitle is-6">En Progreso</div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <div class="buttons">
+            <a class="button is-primary" href="{{ url_for('participante.perfil_participante', nombre_usuario=user.usuario) }}">
+              <span class="icon">
+                <i class="fas fa-history"></i>
+              </span>
+              <span>Ver Mis Participaciones</span>
+            </a>
+            <a class="button is-warning" href="{{ url_for('auth.cambiar_contrasena') }}">
               <span class="icon">
                 <i class="fas fa-key"></i>
               </span>
               <span>Cambiar Contraseña</span>
-            </button> -->
+            </a>
+            <a class="button is-info" href="{{ url_for('auth.mis_sesiones') }}">
+              <span class="icon">
+                <i class="fas fa-laptop"></i>
+              </span>
+              <span>Mis Sesiones</span>
+            </a>
             <a class="button is-danger" href="/auth/logout">
               <span class="icon">
                 <i class="fas fa-sign-out-alt"></i>

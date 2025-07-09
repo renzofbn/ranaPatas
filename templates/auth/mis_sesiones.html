@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Sesiones{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <p class="card-header-title">
+          <span class="icon">
+            <i class="fas fa-laptop"></i>
+          </span>
+          <span>Mis Sesiones Activas</span>
+        </p>
+        <a href="{{ url_for('auth.perfil') }}" class="card-header-icon">
+          <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+          </span>
+        </a>
+      </div>
+      
+      <div class="card-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                <button class="delete"></button>
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        {% if sessions %}
+          <div class="notification is-info is-light">
+            <div class="content">
+              <p><strong>Información sobre sesiones:</strong></p>
+              <ul>
+                <li>Estas son todas tus sesiones activas en diferentes dispositivos</li>
+                <li>Puedes cerrar sesiones específicas si sospechas actividad no autorizada</li>
+                <li>Al cambiar tu contraseña, todas las sesiones se cerrarán automáticamente por seguridad</li>
+                <li>Si un administrador cambia tu rol, también se cerrarán todas tus sesiones</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="table-container">
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <thead>
+                <tr>
+                  <th>
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="fas fa-calendar"></i>
+                      </span>
+                      <span>Fecha de Inicio</span>
+                    </span>
+                  </th>
+                  <th>
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="fas fa-clock"></i>
+                      </span>
+                      <span>Expira</span>
+                    </span>
+                  </th>
+                  <th>
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="fas fa-globe"></i>
+                      </span>
+                      <span>Dirección IP</span>
+                    </span>
+                  </th>
+                  <th>
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="fas fa-browser"></i>
+                      </span>
+                      <span>Navegador</span>
+                    </span>
+                  </th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for session in sessions %}
+                <tr>
+                  <td>
+                    <span class="icon-text">
+                      <span class="icon has-text-info">
+                        <i class="fas fa-calendar-day"></i>
+                      </span>
+                      <span>{{ session[1].strftime('%d/%m/%Y %H:%M') }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="icon-text">
+                      <span class="icon has-text-warning">
+                        <i class="fas fa-hourglass-end"></i>
+                      </span>
+                      <span>{{ session[2].strftime('%d/%m/%Y %H:%M') }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="tag is-dark">{{ session[3] or 'Desconocida' }}</span>
+                  </td>
+                  <td>
+                    {% set user_agent = session[4] %}
+                    <span class="icon-text">
+                      {% if 'Chrome' in user_agent %}
+                        <span class="icon has-text-success">
+                          <i class="fab fa-chrome"></i>
+                        </span>
+                        <span>Chrome</span>
+                      {% elif 'Firefox' in user_agent %}
+                        <span class="icon has-text-warning">
+                          <i class="fab fa-firefox"></i>
+                        </span>
+                        <span>Firefox</span>
+                      {% elif 'Safari' in user_agent %}
+                        <span class="icon has-text-info">
+                          <i class="fab fa-safari"></i>
+                        </span>
+                        <span>Safari</span>
+                      {% elif 'Edge' in user_agent %}
+                        <span class="icon has-text-link">
+                          <i class="fab fa-edge"></i>
+                        </span>
+                        <span>Edge</span>
+                      {% else %}
+                        <span class="icon">
+                          <i class="fas fa-globe"></i>
+                        </span>
+                        <span>Desconocido</span>
+                      {% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    {% if session[0] == current_token %}
+                      <span class="tag is-success">
+                        <span class="icon">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>Sesión Actual</span>
+                      </span>
+                    {% else %}
+                      <span class="tag is-info">
+                        <span class="icon">
+                          <i class="fas fa-laptop"></i>
+                        </span>
+                        <span>Otra Sesión</span>
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if session[0] != current_token %}
+                      <a href="{{ url_for('auth.cerrar_sesion_especifica', token=session[0]) }}" 
+                         class="button is-small is-danger is-outlined"
+                         onclick="return confirm('¿Estás seguro de que quieres cerrar esta sesión?')">
+                        <span class="icon">
+                          <i class="fas fa-times"></i>
+                        </span>
+                        <span>Cerrar</span>
+                      </a>
+                    {% else %}
+                      <span class="has-text-grey">Sesión actual</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="notification is-warning is-light mt-5">
+            <strong>Nota de Seguridad:</strong> Si ves sesiones que no reconoces, 
+            ciérralas inmediatamente y considera cambiar tu contraseña.
+          </div>
+        {% else %}
+          <div class="notification is-info">
+            <div class="content">
+              <h5 class="title is-5">No hay sesiones adicionales</h5>
+              <p>Actualmente no tienes ninguna sesión activa además de la actual.</p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Añadir funcionalidad para cerrar notificaciones
+  (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+    const $notification = $delete.parentNode;
+    $delete.addEventListener('click', () => {
+      $notification.parentNode.removeChild($notification);
+    });
+  });
+});
+</script>
+{% endblock %}

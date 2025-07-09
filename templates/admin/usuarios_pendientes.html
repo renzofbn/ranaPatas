@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %} Usuarios Pendientes {% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="container">
+    <nav class="breadcrumb">
+      <ul>
+        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="is-active"><a href="#" aria-current="page">Usuarios Pendientes</a></li>
+      </ul>
+    </nav>
+
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h1 class="title">Usuarios Pendientes de Aprobación</h1>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <span class="tag is-warning is-large">{{ usuarios|length }} pendiente(s)</span>
+        </div>
+      </div>
+    </div>
+
+    {% if usuarios %}
+      <div class="box">
+        <div class="table-container">
+          <table class="table is-fullwidth is-hoverable">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Fecha Registro</th>
+                <th>Rol a Asignar</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for usuario in usuarios %}
+              <tr>
+                <td>
+                  <strong>{{ usuario[1] }}</strong>
+                </td>
+                <td>
+                  <span class="tag is-info">{{ usuario[2] }}</span>
+                </td>
+                <td>{{ usuario[3] }}</td>
+                <td>{{ usuario[4].strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>
+                  <div class="select is-small">
+                    <select id="rol-{{ usuario[0] }}">
+                      <option value="1">Participante</option>
+                      <option value="2">Organizador</option>
+                      <option value="3">Administrador</option>
+                    </select>
+                  </div>
+                </td>
+                <td>
+                  <div class="buttons">
+                    <button class="button is-success is-small" onclick="aprobarUsuario({{ usuario[0] }}, '{{ usuario[2] }}')">
+                      <span class="icon">
+                        <i class="fas fa-check"></i>
+                      </span>
+                      <span>Aprobar</span>
+                    </button>
+                    <button class="button is-danger is-small" onclick="rechazarUsuario({{ usuario[0] }}, '{{ usuario[2] }}')">
+                      <span class="icon">
+                        <i class="fas fa-times"></i>
+                      </span>
+                      <span>Rechazar</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="box has-text-centered">
+        <span class="icon is-large has-text-success">
+          <i class="fas fa-check-circle fa-2x"></i>
+        </span>
+        <p class="title is-4 mt-3">No hay usuarios pendientes</p>
+        <p class="subtitle">Todos los usuarios han sido procesados</p>
+        <a href="{{ url_for('admin.dashboard') }}" class="button is-primary">Volver al Panel</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Modal para aprobar usuario -->
+<div class="modal" id="modal-aprobar">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Aprobar Usuario</p>
+      <button class="delete" aria-label="close" onclick="cerrarModal('modal-aprobar')"></button>
+    </header>
+    <section class="modal-card-body">
+      <form id="form-aprobar" method="POST">
+        <p>¿Estás seguro de que quieres aprobar al usuario <strong id="usuario-aprobar"></strong>?</p>
+        
+        <div class="field mt-4">
+          <label class="label">Rol del Usuario</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select name="rol" id="rol-aprobar" required>
+                <option value="">Selecciona un rol</option>
+                <option value="1">Participante</option>
+                <option value="2">Organizador</option>
+                <option value="3">Administrador</option>
+              </select>
+            </div>
+          </div>
+          <p class="help">
+            <strong>Participante:</strong> Solo puede participar en eventos<br>
+            <strong>Organizador:</strong> Puede crear y gestionar eventos<br>
+            <strong>Administrador:</strong> Acceso completo al sistema
+          </p>
+        </div>
+        
+        <div class="field mt-4">
+          <label class="label">Observaciones (opcional)</label>
+          <div class="control">
+            <textarea class="textarea" name="observaciones" placeholder="Comentarios adicionales..."></textarea>
+          </div>
+        </div>
+      </form>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-success" onclick="document.getElementById('form-aprobar').submit()">Aprobar</button>
+      <button class="button" onclick="cerrarModal('modal-aprobar')">Cancelar</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Modal para rechazar usuario -->
+<div class="modal" id="modal-rechazar">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Rechazar Usuario</p>
+      <button class="delete" aria-label="close" onclick="cerrarModal('modal-rechazar')"></button>
+    </header>
+    <section class="modal-card-body">
+      <form id="form-rechazar" method="POST">
+        <p>¿Estás seguro de que quieres rechazar al usuario <strong id="usuario-rechazar"></strong>?</p>
+        <div class="field mt-4">
+          <label class="label">Razón del rechazo (obligatorio)</label>
+          <div class="control">
+            <textarea class="textarea" name="observaciones" placeholder="Explica por qué rechazas este usuario..." required></textarea>
+          </div>
+          <p class="help">Debes proporcionar una razón para rechazar al usuario.</p>
+        </div>
+      </form>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-danger" onclick="document.getElementById('form-rechazar').submit()">Rechazar</button>
+      <button class="button" onclick="cerrarModal('modal-rechazar')">Cancelar</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+function aprobarUsuario(userId, username) {
+  document.getElementById('usuario-aprobar').textContent = username;
+  document.getElementById('form-aprobar').action = `/admin/aprobar_usuario/${userId}`;
+  
+  // Obtener el rol seleccionado en la tabla
+  const rolSeleccionado = document.getElementById(`rol-${userId}`).value;
+  document.getElementById('rol-aprobar').value = rolSeleccionado;
+  
+  document.getElementById('modal-aprobar').classList.add('is-active');
+}
+
+function rechazarUsuario(userId, username) {
+  document.getElementById('usuario-rechazar').textContent = username;
+  document.getElementById('form-rechazar').action = `/admin/rechazar_usuario/${userId}`;
+  document.getElementById('modal-rechazar').classList.add('is-active');
+}
+
+function cerrarModal(modalId) {
+  document.getElementById(modalId).classList.remove('is-active');
+}
+
+// Cerrar modal al hacer clic en el fondo
+document.addEventListener('DOMContentLoaded', function() {
+  const modals = document.querySelectorAll('.modal');
+  modals.forEach(modal => {
+    modal.querySelector('.modal-background').addEventListener('click', function() {
+      modal.classList.remove('is-active');
+    });
+  });
+});
+</script>
+
+{% endblock %}

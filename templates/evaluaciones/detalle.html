@@ -1,0 +1,627 @@
+{% extends "base.html" %}
+
+{% block title %} - {{ evaluacion.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-full">
+            <!-- Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title is-3">
+                                <i class="fas fa-clipboard-list mr-2"></i>
+                                {{ evaluacion.nombre }}
+                            </h1>
+                            <p class="subtitle is-6">
+                                Creada por: {{ evaluacion.creado_por_nombre or evaluacion.creado_por_usuario }}
+                                <span class="has-text-grey-light">|</span>
+                                {{ evaluacion.fecha_creada.strftime('%d/%m/%Y %H:%M') }}
+                                <span class="tag {% if evaluacion.activa %}is-success{% else %}is-danger{% endif %} ml-2">
+                                    {% if evaluacion.activa %}
+                                        <i class="fas fa-check mr-1"></i>
+                                        Activa
+                                    {% else %}
+                                        <i class="fas fa-times mr-1"></i>
+                                        Inactiva
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="buttons">
+                            <a href="{{ url_for('evaluaciones.index') }}" class="button is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>Volver</span>
+                            </a>
+                            {% if can_manage %}
+                            <a href="{{ url_for('evaluaciones.editar', evaluacion_id=evaluacion.id) }}" class="button is-primary">
+                                <span class="icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span>Editar</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                            <button class="delete"></button>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Información de la evaluación -->
+            {% if evaluacion.observacion %}
+            <div class="box mb-5">
+                <h3 class="title is-5">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Descripción
+                </h3>
+                <div class="content">
+                    <p>{{ evaluacion.observacion }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Estadísticas -->
+            <div class="columns mb-5">
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Total Participantes</p>
+                        <p class="title is-3">{{ participantes|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Pendientes</p>
+                        <p class="title is-3">{{ participantes|selectattr('estado', 'equalto', 'pendiente')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">En Progreso</p>
+                        <p class="title is-3">{{ participantes|selectattr('estado', 'equalto', 'en_progreso')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Completadas</p>
+                        <p class="title is-3">{{ participantes|selectattr('estado', 'equalto', 'completada')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Canceladas</p>
+                        <p class="title is-3">{{ participantes|selectattr('estado', 'equalto', 'cancelada')|list|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de participantes -->
+            <div class="box">
+                <div class="level mb-4">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h3 class="title is-5">
+                                <i class="fas fa-users mr-2"></i>
+                                Participantes ({{ participantes|length }})
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        {% if can_manage %}
+                        <div class="level-item">
+                            <button class="button is-success" onclick="abrirModalAgregarParticipante()">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span>Agregar Participante</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if participantes %}
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>Participante</th>
+                                <th>Estado</th>
+                                <th>Fecha Agregado</th>
+                                <th>Tiempo Inicio</th>
+                                <th>Tiempo Final</th>
+                                <th>Duración</th>
+                                {% if can_manage %}
+                                <th>Acciones</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for participante in participantes %}
+                            <tr>
+                                <td>
+                                    <div class="media">
+                                        <div class="media-left">
+                                            <figure class="image is-32x32">
+                                                <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participante.usuario }}&background=3273dc&color=fff&size=32" alt="Avatar">
+                                            </figure>
+                                        </div>
+                                        <div class="media-content">
+                                            <strong>{{ participante.usuario }}</strong>
+                                            {% if participante.nombre %}
+                                            <br><small class="has-text-grey">{{ participante.nombre }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if participante.estado == 'pendiente' %}
+                                        <span class="tag is-warning">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Pendiente
+                                        </span>
+                                    {% elif participante.estado == 'en_progreso' %}
+                                        <span class="tag is-link">
+                                            <i class="fas fa-play mr-1"></i>
+                                            En Progreso
+                                        </span>
+                                    {% elif participante.estado == 'completada' %}
+                                        <span class="tag is-success">
+                                            <i class="fas fa-check mr-1"></i>
+                                            Completada
+                                        </span>
+                                    {% elif participante.estado == 'cancelada' %}
+                                        <span class="tag is-danger">
+                                            <i class="fas fa-times mr-1"></i>
+                                            Cancelada
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if participante.fecha_agregacion %}
+                                        <span class="tag is-light">
+                                            <i class="fas fa-calendar-plus mr-1"></i>
+                                            {{ participante.fecha_agregacion.strftime('%d/%m/%Y %H:%M') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="has-text-grey">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if participante.tiempo_inicio %}
+                                        <span class="tag is-success">
+                                            <i class="fas fa-play mr-1"></i>
+                                            {{ participante.tiempo_inicio.strftime('%d/%m/%Y %H:%M:%S') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="has-text-grey">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if participante.tiempo_final %}
+                                        <span class="tag is-danger">
+                                            <i class="fas fa-stop mr-1"></i>
+                                            {{ participante.tiempo_final.strftime('%d/%m/%Y %H:%M:%S') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="has-text-grey">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if participante.duracion %}
+                                        <span class="tag is-info">{{ participante.duracion }}</span>
+                                    {% else %}
+                                        <span class="has-text-grey">-</span>
+                                    {% endif %}
+                                </td>
+                                {% if can_manage %}
+                                <td>
+                                    <div class="buttons are-small">
+                                        <a href="{{ url_for('evaluaciones.detalle_participante', evaluacion_id=evaluacion.id, participante_id=participante.id) }}" 
+                                           class="button is-info is-small" title="Ver detalle">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </a>
+                                        <button class="button is-danger is-small" 
+                                                title="Eliminar participante"
+                                                onclick="confirmarEliminarParticipante({{ participante.id }}, '{{ participante.usuario }}')">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-trash"></i>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </td>
+                                {% else %}
+                                <td>
+                                    <div class="buttons are-small">
+                                        <a href="{{ url_for('evaluaciones.detalle_participante', evaluacion_id=evaluacion.id, participante_id=participante.id) }}" 
+                                           class="button is-info is-small" title="Ver detalle">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </a>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="has-text-centered py-6">
+                    <p>
+                        <i class="fas fa-users fa-3x has-text-grey-light"></i>
+                    </p>
+                    <p class="title is-5 has-text-grey">No hay participantes en esta evaluación</p>
+                    {% if can_manage %}
+                    <p class="subtitle is-6 has-text-grey">
+                        <button class="button is-success" onclick="abrirModalAgregarParticipante()">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>Agregar primer participante</span>
+                        </button>
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Información adicional -->
+            <div class="notification is-info is-light">
+                <div class="content">
+                    <p><strong>Información:</strong></p>
+                    <ul>
+                        <li>Los participantes pueden estar en diferentes estados: pendiente, en progreso, completada o cancelada</li>
+                        <li>El cronómetro se inicia y detiene manualmente por los organizadores</li>
+                        <li>La duración se calcula automáticamente entre el tiempo de inicio y final</li>
+                        <li>Las observaciones permiten agregar notas adicionales sobre cada participante</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar participante -->
+{% if can_manage %}
+<div class="modal" id="modalAgregarParticipante">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <i class="fas fa-user-plus mr-2"></i>
+                Agregar Participante
+            </p>
+            <button class="delete" aria-label="close" onclick="cerrarModalAgregarParticipante()"></button>
+        </header>
+        <section class="modal-card-body">
+            <form id="formAgregarParticipante">
+                <div class="field">
+                    <label class="label">Usuario *</label>
+                    <div class="control">
+                        <div class="dropdown" id="dropdownUsuarios">
+                            <div class="dropdown-trigger">
+                                <input class="input" type="text" id="inputUsuario" 
+                                       placeholder="Buscar usuario por nombre o correo..." 
+                                       autocomplete="off">
+                            </div>
+                            <div class="dropdown-menu" id="dropdownMenu" role="menu">
+                                <div class="dropdown-content" id="dropdownContent">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="usuarioSeleccionadoId" name="usuario_id">
+                    <p class="help">Busca y selecciona un usuario del sistema</p>
+                </div>
+
+                <div class="field">
+                    <label class="label">Observaciones</label>
+                    <div class="control">
+                        <textarea class="textarea" id="observacionesParticipante" 
+                                  placeholder="Observaciones adicionales sobre este participante..." 
+                                  rows="3"></textarea>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" onclick="agregarParticipante()">
+                <span class="icon">
+                    <i class="fas fa-save"></i>
+                </span>
+                <span>Agregar Participante</span>
+            </button>
+            <button class="button" onclick="cerrarModalAgregarParticipante()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad para cerrar notificaciones
+    (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+        const $notification = $delete.parentNode;
+        $delete.addEventListener('click', () => {
+            $notification.parentNode.removeChild($notification);
+        });
+    });
+
+    // Configurar autocompletado para usuarios
+    configurarAutocompletado();
+});
+
+let timeoutBusqueda = null;
+
+function configurarAutocompletado() {
+    const inputUsuario = document.getElementById('inputUsuario');
+    const dropdown = document.getElementById('dropdownUsuarios');
+    const dropdownContent = document.getElementById('dropdownContent');
+    const usuarioSeleccionadoId = document.getElementById('usuarioSeleccionadoId');
+    
+    if (!inputUsuario) return;
+
+    inputUsuario.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (timeoutBusqueda) {
+            clearTimeout(timeoutBusqueda);
+        }
+        
+        if (query.length < 2) {
+            dropdown.classList.remove('is-active');
+            return;
+        }
+        
+        timeoutBusqueda = setTimeout(() => {
+            buscarUsuarios(query);
+        }, 300);
+    });
+
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        if (!dropdown.contains(event.target)) {
+            dropdown.classList.remove('is-active');
+        }
+    });
+}
+
+function buscarUsuarios(query) {
+    const dropdown = document.getElementById('dropdownUsuarios');
+    const dropdownContent = document.getElementById('dropdownContent');
+    
+    fetch(`/evaluaciones/buscar_usuarios?q=${encodeURIComponent(query)}&evaluacion_id={{ evaluacion.id }}`)
+        .then(response => response.json())
+        .then(usuarios => {
+            dropdownContent.innerHTML = '';
+            
+            if (usuarios.length === 0) {
+                dropdownContent.innerHTML = '<div class="dropdown-item">No se encontraron usuarios</div>';
+            } else {
+                usuarios.forEach(usuario => {
+                    const item = document.createElement('a');
+                    item.className = 'dropdown-item';
+                    item.innerHTML = `
+                        <div class="media">
+                            <div class="media-left">
+                                <figure class="image is-24x24">
+                                    <img class="is-rounded" src="https://ui-avatars.com/api/?name=${usuario.usuario}&background=3273dc&color=fff&size=24" alt="Avatar">
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <strong>${usuario.usuario}</strong>
+                                ${usuario.nombre ? `<br><small class="has-text-grey">${usuario.nombre}</small>` : ''}
+                                <br><small class="has-text-grey">${usuario.correo}</small>
+                            </div>
+                        </div>
+                    `;
+                    
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        seleccionarUsuario(usuario);
+                    });
+                    
+                    dropdownContent.appendChild(item);
+                });
+            }
+            
+            dropdown.classList.add('is-active');
+        })
+        .catch(error => {
+            console.error('Error al buscar usuarios:', error);
+            dropdownContent.innerHTML = '<div class="dropdown-item">Error al buscar usuarios</div>';
+        });
+}
+
+function seleccionarUsuario(usuario) {
+    const inputUsuario = document.getElementById('inputUsuario');
+    const usuarioSeleccionadoId = document.getElementById('usuarioSeleccionadoId');
+    const dropdown = document.getElementById('dropdownUsuarios');
+    
+    inputUsuario.value = usuario.display;
+    usuarioSeleccionadoId.value = usuario.id;
+    dropdown.classList.remove('is-active');
+}
+
+function abrirModalAgregarParticipante() {
+    const modal = document.getElementById('modalAgregarParticipante');
+    const inputUsuario = document.getElementById('inputUsuario');
+    const usuarioSeleccionadoId = document.getElementById('usuarioSeleccionadoId');
+    const observacionesParticipante = document.getElementById('observacionesParticipante');
+    
+    // Limpiar formulario
+    inputUsuario.value = '';
+    usuarioSeleccionadoId.value = '';
+    observacionesParticipante.value = '';
+    
+    modal.classList.add('is-active');
+    inputUsuario.focus();
+}
+
+function cerrarModalAgregarParticipante() {
+    const modal = document.getElementById('modalAgregarParticipante');
+    const dropdown = document.getElementById('dropdownUsuarios');
+    
+    modal.classList.remove('is-active');
+    dropdown.classList.remove('is-active');
+}
+
+function agregarParticipante() {
+    const usuarioId = document.getElementById('usuarioSeleccionadoId').value;
+    const observaciones = document.getElementById('observacionesParticipante').value;
+    
+    if (!usuarioId) {
+        alert('Por favor selecciona un usuario');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('usuario_id', usuarioId);
+    formData.append('observaciones', observaciones);
+    
+    fetch(`/evaluaciones/agregar_participante/{{ evaluacion.id }}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cerrarModalAgregarParticipante();
+            location.reload(); // Recargar para mostrar el nuevo participante
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar participante');
+    });
+}
+
+function confirmarEliminarParticipante(participanteId, usuarioNombre) {
+    if (confirm(`¿Estás seguro de que deseas eliminar al participante "${usuarioNombre}" de esta evaluación?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/evaluaciones/eliminar_participante/{{ evaluacion.id }}/${participanteId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Cerrar modal al presionar ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        cerrarModalAgregarParticipante();
+    }
+});
+</script>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+
+.media {
+    align-items: center;
+}
+
+.buttons.are-small .button {
+    margin-bottom: 0.25rem;
+}
+
+/* Estilos para badges en la tabla */
+.table .tag {
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.table .tag .icon {
+    margin-right: 0.25rem;
+}
+
+/* Estilos para el autocompletado */
+.dropdown-menu {
+    min-width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item .media {
+    margin-bottom: 0;
+}
+
+.dropdown-item .media-left .image {
+    margin-right: 0.5rem;
+}
+
+/* Estilos del modal */
+.modal-card {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+#inputUsuario {
+    width: 100%;
+}
+
+.dropdown {
+    width: 100%;
+}
+
+@media screen and (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .table th, .table td {
+        white-space: nowrap;
+    }
+    
+    .modal-card {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    /* En móviles, permitir que los badges se envuelvan */
+    .table .tag {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+</style>
+{% endblock %}

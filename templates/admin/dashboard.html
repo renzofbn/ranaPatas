@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %} Panel de Administración {% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="container">
+    <h1 class="title">Panel de Administración</h1>
+    
+    <!-- Estadísticas -->
+    <div class="columns">
+      <div class="column">
+        <div class="box has-background-info-light">
+          <div class="has-text-centered">
+            <p class="title is-3 has-text-info">{{ estadisticas.usuarios_pendientes }}</p>
+            <p class="subtitle">Usuarios Pendientes</p>
+            <a href="{{ url_for('admin.usuarios_pendientes') }}" class="button is-info">Ver</a>
+          </div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-background-success-light">
+          <div class="has-text-centered">
+            <p class="title is-3 has-text-success">{{ estadisticas.usuarios_aprobados }}</p>
+            <p class="subtitle">Usuarios Aprobados</p>
+          </div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-background-warning-light">
+          <div class="has-text-centered">
+            <p class="title is-3 has-text-warning">{{ estadisticas.usuarios_rechazados }}</p>
+            <p class="subtitle">Usuarios Rechazados</p>
+          </div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-background-primary-light">
+          <div class="has-text-centered">
+            <p class="title is-3 has-text-primary">{{ estadisticas.total_eventos }}</p>
+            <p class="subtitle">Total Eventos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estadísticas por Roles -->
+    <div class="box">
+      <h2 class="title is-4">Distribución por Roles</h2>
+      <div class="columns">
+        <div class="column">
+          <div class="box has-background-light">
+            <div class="has-text-centered">
+              <p class="title is-4 has-text-grey">{{ estadisticas.participantes }}</p>
+              <p class="subtitle">Participantes</p>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box has-background-info-light">
+            <div class="has-text-centered">
+              <p class="title is-4 has-text-info">{{ estadisticas.organizadores }}</p>
+              <p class="subtitle">Organizadores</p>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box has-background-primary-light">
+            <div class="has-text-centered">
+              <p class="title is-4 has-text-primary">{{ estadisticas.administradores }}</p>
+              <p class="subtitle">Administradores</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menú de navegación -->
+    <div class="box">
+      <h2 class="title is-4">Acciones Administrativas</h2>
+      <div class="buttons">
+        <a href="{{ url_for('admin.usuarios_pendientes') }}" class="button is-warning">
+          <span class="icon">
+            <i class="fas fa-clock"></i>
+          </span>
+          <span>Usuarios Pendientes</span>
+          {% if estadisticas.usuarios_pendientes > 0 %}
+            <span class="tag is-danger is-rounded ml-2">{{ estadisticas.usuarios_pendientes }}</span>
+          {% endif %}
+        </a>
+        
+        <a href="{{ url_for('admin.todos_usuarios') }}" class="button is-info">
+          <span class="icon">
+            <i class="fas fa-history"></i>
+          </span>
+          <span>Historial de Usuarios</span>
+        </a>
+        
+        <a href="{{ url_for('users.index') }}" class="button is-success">
+          <span class="icon">
+            <i class="fas fa-users-cog"></i>
+          </span>
+          <span>Gestionar Usuarios</span>
+        </a>
+        
+        <a href="{{ url_for('admin.notificaciones') }}" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-bell"></i>
+          </span>
+          <span>Notificaciones</span>
+          {% if estadisticas.notificaciones_pendientes > 0 %}
+            <span class="tag is-danger is-rounded ml-2">{{ estadisticas.notificaciones_pendientes }}</span>
+          {% endif %}
+        </a>
+        
+        <a href="{{ url_for('eventos.index') }}" class="button is-success">
+          <span class="icon">
+            <i class="fas fa-calendar"></i>
+          </span>
+          <span>Gestionar Eventos</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Notificaciones recientes -->
+    {% if estadisticas.notificaciones_pendientes > 0 %}
+    <div class="box">
+      <h3 class="title is-5 has-text-warning">
+        <span class="icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </span>
+        Tienes {{ estadisticas.notificaciones_pendientes }} notificación(es) sin leer
+      </h3>
+      <p>Hay usuarios pendientes de aprobación y otras notificaciones que requieren tu atención.</p>
+      <a href="{{ url_for('admin.notificaciones') }}" class="button is-warning mt-3">Ver Notificaciones</a>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

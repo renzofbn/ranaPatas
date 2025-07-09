@@ -383,7 +383,9 @@
                                                         </figure>
                                                     </div>
                                                     <div class="media-content">
-                                                        <p class="title is-6">{{ participante.nombre }}</p>
+                                                        <p class="title is-6">
+                                                            {{ participante.nombre }}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -626,6 +628,73 @@
         font-size: 1.1rem;
     }
 }
+
+/* Estilos para el autocompletado de usuarios */
+#dropdown-usuarios {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+}
+
+#dropdown-usuarios .dropdown-menu {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#dropdown-usuarios .dropdown-item {
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+}
+
+#dropdown-usuarios .dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+#dropdown-usuarios .dropdown-item.is-active {
+    background-color: #3273dc;
+    color: white;
+}
+
+.usuario-info {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.usuario-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+}
+
+.usuario-detalles {
+    flex: 1;
+}
+
+.usuario-nombre {
+    font-weight: 600;
+    color: #363636;
+}
+
+.usuario-username {
+    font-size: 0.85rem;
+    color: #757575;
+}
+
+#dropdown-usuarios .dropdown-item.is-active .usuario-nombre,
+#dropdown-usuarios .dropdown-item.is-active .usuario-username {
+    color: white;
+}
+
+.field {
+    position: relative;
+}
 </style>
 
 <!-- Modal para agregar participante -->
@@ -641,8 +710,28 @@
             <button class="delete" onclick="closeModal('modal-agregar-participante')"></button>
         </header>
         <form method="POST" action="{{ url_for('eventos.agregar_participante', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}">
-            <section class="modal-card-body">
+            <section class="modal-card-body">        
                 <div class="field">
+                    <label class="label">Nombre del Usuario</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" id="nombre-usuario" name="nombre" 
+                               placeholder="Buscar usuario existente..." required autocomplete="off">
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                    <input type="hidden" id="usuario-id" name="usuario_id" value="">
+                    <div id="dropdown-usuarios" class="dropdown">
+                        <div class="dropdown-menu" id="dropdown-menu-usuarios" role="menu">
+                            <div class="dropdown-content" id="usuarios-lista">
+                                <!-- Los usuarios aparecerán aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    <p class="help">Selecciona un usuario registrado en el sistema</p>
+                </div>
+
+                 <div class="field">
                     <label class="label">Código del Participante</label>
                     <div class="control has-icons-left">
                         <input class="input" type="text" name="codigo" placeholder="Ej: P004" required>
@@ -651,16 +740,6 @@
                         </span>
                     </div>
                     <p class="help">Código único para identificar al participante</p>
-                </div>
-                
-                <div class="field">
-                    <label class="label">Nombre Completo</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="text" name="nombre" placeholder="Ej: Ana María Rodríguez" required>
-                        <span class="icon is-small is-left">
-                            <i class="fas fa-user"></i>
-                        </span>
-                    </div>
                 </div>
             </section>
             <footer class="modal-card-foot">
@@ -736,7 +815,200 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar filtros y ordenación
     inicializarFiltrosYOrdenacion();
+    
+    // Inicializar autocompletado de usuarios
+    inicializarAutocompletadoUsuarios();
 });
+
+// Funciones para el autocompletado de usuarios
+function inicializarAutocompletadoUsuarios() {
+    const inputNombre = document.getElementById('nombre-usuario');
+    const inputUsuarioId = document.getElementById('usuario-id');
+    const dropdown = document.getElementById('dropdown-usuarios');
+    const dropdownContent = document.getElementById('usuarios-lista');
+    
+    if (!inputNombre) return; // Solo inicializar si existe el campo
+    
+    let timeoutBusqueda;
+    let usuarioSeleccionado = null;
+    let indiceFocus = -1;
+    
+    // Búsqueda con delay
+    inputNombre.addEventListener('input', function() {
+        clearTimeout(timeoutBusqueda);
+        const query = this.value.trim();
+        
+        if (query.length >= 2) {
+            timeoutBusqueda = setTimeout(() => buscarUsuarios(query), 300);
+        } else {
+            cerrarDropdown();
+            limpiarSeleccion();
+        }
+    });
+    
+    // Navegación con teclado
+    inputNombre.addEventListener('keydown', function(e) {
+        const items = dropdownContent.querySelectorAll('.dropdown-item');
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                indiceFocus = Math.min(indiceFocus + 1, items.length - 1);
+                actualizarFocusItem(items);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                indiceFocus = Math.max(indiceFocus - 1, -1);
+                actualizarFocusItem(items);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (indiceFocus >= 0 && items[indiceFocus]) {
+                    seleccionarUsuario(items[indiceFocus]);
+                }
+                break;
+            case 'Escape':
+                cerrarDropdown();
+                break;
+        }
+    });
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target) && e.target !== inputNombre) {
+            cerrarDropdown();
+        }
+    });
+    
+    // Validar que se haya seleccionado un usuario
+    const form = inputNombre.closest('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!inputUsuarioId.value) {
+                e.preventDefault();
+                inputNombre.classList.add('is-danger');
+                inputNombre.focus();
+                alert('Por favor, selecciona un usuario válido de la lista.');
+                return false;
+            }
+        });
+    }
+    
+    function buscarUsuarios(query) {
+        fetch(`/auth/api/usuarios?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(usuarios => {
+                mostrarUsuarios(usuarios);
+            })
+            .catch(error => {
+                console.error('Error al buscar usuarios:', error);
+                mostrarError();
+            });
+    }
+    
+    function mostrarUsuarios(usuarios) {
+        dropdownContent.innerHTML = '';
+        indiceFocus = -1;
+        
+        if (usuarios.length === 0) {
+            dropdownContent.innerHTML = `
+                <div class="dropdown-item">
+                    <div class="usuario-info">
+                        <span class="has-text-grey">
+                            <i class="fas fa-search mr-2"></i>
+                            No se encontraron usuarios
+                        </span>
+                    </div>
+                </div>
+            `;
+        } else {
+            usuarios.forEach(usuario => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.dataset.usuarioId = usuario.id;
+                item.dataset.usuarioNombre = usuario.nombre;
+                
+                item.innerHTML = `
+                    <div class="usuario-info">
+                        <img class="usuario-avatar" 
+                             src="https://ui-avatars.com/api/?name=${encodeURIComponent(usuario.nombre)}&background=3273dc&color=fff&size=32" 
+                             alt="Avatar">
+                        <div class="usuario-detalles">
+                            <div class="usuario-nombre">${usuario.nombre}</div>
+                            <div class="usuario-username">@${usuario.usuario}</div>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => seleccionarUsuario(item));
+                dropdownContent.appendChild(item);
+            });
+        }
+        
+        abrirDropdown();
+    }
+    
+    function mostrarError() {
+        dropdownContent.innerHTML = `
+            <div class="dropdown-item">
+                <div class="usuario-info">
+                    <span class="has-text-danger">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Error al cargar usuarios
+                    </span>
+                </div>
+            </div>
+        `;
+        abrirDropdown();
+    }
+    
+    function seleccionarUsuario(item) {
+        const usuarioId = item.dataset.usuarioId;
+        const usuarioNombre = item.dataset.usuarioNombre;
+        
+        if (usuarioId && usuarioNombre) {
+            inputNombre.value = usuarioNombre;
+            inputUsuarioId.value = usuarioId;
+            inputNombre.classList.remove('is-danger');
+            inputNombre.classList.add('is-success');
+            usuarioSeleccionado = { id: usuarioId, nombre: usuarioNombre };
+        }
+        
+        cerrarDropdown();
+    }
+    
+    function actualizarFocusItem(items) {
+        items.forEach((item, index) => {
+            if (index === indiceFocus) {
+                item.classList.add('is-active');
+            } else {
+                item.classList.remove('is-active');
+            }
+        });
+    }
+    
+    function abrirDropdown() {
+        dropdown.classList.add('is-active');
+    }
+    
+    function cerrarDropdown() {
+        dropdown.classList.remove('is-active');
+        indiceFocus = -1;
+    }
+    
+    function limpiarSeleccion() {
+        inputUsuarioId.value = '';
+        usuarioSeleccionado = null;
+        inputNombre.classList.remove('is-success', 'is-danger');
+    }
+    
+    // Validar cuando el usuario modifica manualmente el campo
+    inputNombre.addEventListener('blur', function() {
+        if (this.value && !inputUsuarioId.value) {
+            this.classList.add('is-danger');
+        }
+    });
+}
 
 // Funciones para filtrado y ordenación de participantes
 function inicializarFiltrosYOrdenacion() {

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %} - Editar Evaluación{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-8">
+            <div class="box">
+                <div class="level mb-5">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div>
+                                <h1 class="title is-4">
+                                    <i class="fas fa-edit mr-2"></i>
+                                    Editar Evaluación
+                                </h1>
+                                <p class="subtitle is-6">Modificar datos de la evaluación</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <a href="{{ url_for('evaluaciones.detalle', evaluacion_id=evaluacion.id) }}" class="button is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>Volver</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
+                                <button class="delete"></button>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="field">
+                        <label class="label">Nombre de la Evaluación *</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="nombre" 
+                                   placeholder="Ingresa el nombre de la evaluación" 
+                                   value="{{ request.form.get('nombre', evaluacion.nombre) }}"
+                                   maxlength="255" required>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-clipboard-list"></i>
+                            </span>
+                        </div>
+                        <p class="help">Máximo 255 caracteres. Este nombre debe ser único.</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Observaciones</label>
+                        <div class="control">
+                            <textarea class="textarea" name="observacion" 
+                                      placeholder="Descripción opcional de la evaluación..."
+                                      rows="4">{{ request.form.get('observacion', evaluacion.observacion or '') }}</textarea>
+                        </div>
+                        <p class="help">Descripción adicional sobre el propósito o características de la evaluación.</p>
+                    </div>
+
+                    <div class="field">
+                        <div class="control">
+                            <label class="checkbox">
+                                <input type="checkbox" name="activa" {% if request.form.get('activa') or (not request.form and evaluacion.activa) %}checked{% endif %}>
+                                <strong>Evaluación activa</strong>
+                            </label>
+                            <p class="help">Las evaluaciones inactivas no aparecen en las listas de participantes.</p>
+                        </div>
+                    </div>
+
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="submit">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Guardar Cambios</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('evaluaciones.detalle', evaluacion_id=evaluacion.id) }}" class="button is-light">
+                                <span class="icon">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span>Cancelar</span>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="notification is-warning is-light">
+                <div class="content">
+                    <p><strong>Advertencias:</strong></p>
+                    <ul>
+                        <li>Al desactivar una evaluación, los participantes no podrán ver ni interactuar con ella</li>
+                        <li>Los datos de participantes existentes se mantendrán intactos</li>
+                        <li>Cambiar el nombre no afecta los registros de participantes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad para cerrar notificaciones
+    (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+        const $notification = $delete.parentNode;
+        $delete.addEventListener('click', () => {
+            $notification.parentNode.removeChild($notification);
+        });
+    });
+
+    // Contador de caracteres para el nombre
+    const nombreInput = document.querySelector('input[name="nombre"]');
+    const maxLength = 255;
+    
+    if (nombreInput) {
+        const helpText = nombreInput.parentNode.parentNode.querySelector('.help');
+        
+        nombreInput.addEventListener('input', function() {
+            const remaining = maxLength - this.value.length;
+            helpText.textContent = `Máximo 255 caracteres. Quedan ${remaining} caracteres.`;
+            
+            if (remaining < 0) {
+                this.classList.add('is-danger');
+                helpText.classList.add('has-text-danger');
+            } else if (remaining < 50) {
+                this.classList.remove('is-danger');
+                this.classList.add('is-warning');
+                helpText.classList.remove('has-text-danger');
+                helpText.classList.add('has-text-warning');
+            } else {
+                this.classList.remove('is-danger', 'is-warning');
+                helpText.classList.remove('has-text-danger', 'has-text-warning');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

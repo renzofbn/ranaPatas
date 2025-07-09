@@ -15,8 +15,18 @@
                                 <i class="fas fa-users mr-2"></i>
                                 Gestión de Usuarios
                             </h1>
-                            <p class="subtitle is-6">Administra todos los usuarios del sistema</p>
+                            <p class="subtitle is-6">Administra usuarios aprobados y pendientes del sistema</p>
                         </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <a href="{{ url_for('admin.todos_usuarios') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-history"></i>
+                            </span>
+                            <span>Ver Historial Completo</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -31,14 +41,20 @@
                 </div>
                 <div class="column">
                     <div class="box has-text-centered">
-                        <p class="heading">Administradores</p>
-                        <p class="title is-3">{{ users|selectattr('is_admin')|list|length }}</p>
+                        <p class="heading">Participantes</p>
+                        <p class="title is-3">{{ users|selectattr('rol', 'equalto', 1)|list|length + users|rejectattr('rol')|list|length }}</p>
                     </div>
                 </div>
                 <div class="column">
                     <div class="box has-text-centered">
-                        <p class="heading">Usuarios Regulares</p>
-                        <p class="title is-3">{{ (users|length) - (users|selectattr('is_admin')|list|length) }}</p>
+                        <p class="heading">Organizadores</p>
+                        <p class="title is-3">{{ users|selectattr('rol', 'equalto', 2)|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Administradores</p>
+                        <p class="title is-3">{{ users|selectattr('rol', 'equalto', 3)|list|length }}</p>
                     </div>
                 </div>
             </div>
@@ -52,7 +68,8 @@
                                 <th><abbr title="ID">ID</abbr></th>
                                 <th>Usuario</th>
                                 <th>Correo Electrónico</th>
-                                <th>Tipo</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
                                 <th>Fecha Registro</th>
                                 <th>Acciones</th>
                             </tr>
@@ -75,62 +92,89 @@
                                 </td>
                                 <td>{{ user.correo }}</td>
                                 <td>
-                                    {% if user.is_admin %}
-                                        <span class="tag is-danger">
+                                    {% set user_rol = user.rol or 1 %}
+                                    {% if user_rol == 1 %}
+                                        <span class="tag is-light">
+                                            <i class="fas fa-user mr-1"></i>
+                                            Participante
+                                        </span>
+                                    {% elif user_rol == 2 %}
+                                        <span class="tag is-info">
+                                            <i class="fas fa-calendar-alt mr-1"></i>
+                                            Organizador
+                                        </span>
+                                    {% elif user_rol == 3 %}
+                                        <span class="tag is-primary">
                                             <i class="fas fa-crown mr-1"></i>
                                             Administrador
                                         </span>
                                     {% else %}
-                                        <span class="tag is-info">
+                                        <span class="tag is-light">
                                             <i class="fas fa-user mr-1"></i>
-                                            Usuario
+                                            Participante
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.cuenta_bloqueada %}
+                                        <span class="tag is-danger">
+                                            <i class="fas fa-ban mr-1"></i>
+                                            Bloqueada
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-success">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Activa
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td>{{ user.fecha_registro }}</td>
                                 <td>
                                     <div class="buttons">
- 
-                                        <!-- Botón Toggle Admin -->
-                                        {% if session.user_id != user.id %}
-                                        <form method="POST" action="{{ url_for('users.toggle_admin', user_id=user.id) }}" style="display: inline;">
-                                            {% if user.is_admin %}
-                                                <button type="submit" class="button is-small is-warning" 
-                                                        onclick="return confirm('¿Estás seguro de quitar los permisos de administrador a {{ user.usuario }}?')">
-                                                    <span class="icon is-small">
-                                                        <i class="fas fa-user-minus"></i>
-                                                    </span>
-                                                    <span>Quitar Admin</span>
-                                                </button>
-                                            {% else %}
-                                                <button type="submit" class="button is-small is-success"
-                                                        onclick="return confirm('¿Estás seguro de hacer administrador a {{ user.usuario }}?')">
-                                                    <span class="icon is-small">
-                                                        <i class="fas fa-user-plus"></i>
-                                                    </span>
-                                                    <span>Hacer Admin</span>
-                                                </button>
-                                            {% endif %}
-                                        </form>
+                                        <!-- Selector de Rol -->
+                                        {% if session.user_id != user.id and session.rol == 3 %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <div class="select is-small">
+                                                    <select id="rol-{{ user.id }}" onchange="cambiarRol({{ user.id }}, '{{ user.usuario }}')">
+                                                        <option value="1" {% if (user.rol or 1) == 1 %}selected{% endif %}>Participante</option>
+                                                        <option value="2" {% if (user.rol or 1) == 2 %}selected{% endif %}>Organizador</option>
+                                                        <option value="3" {% if (user.rol or 1) == 3 %}selected{% endif %}>Administrador</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
                                         {% endif %}
                                         
-                                        <!-- Botón Eliminar -->
+                                        <!-- Botones de Bloquear/Desbloquear -->
                                         {% if session.user_id != user.id %}
-                                        <form method="POST" action="{{ url_for('users.delete', user_id=user.id) }}" style="display: inline;">
-                                            <button type="submit" class="button is-small is-danger" 
-                                                    onclick="return confirm('¿Estás seguro de eliminar al usuario {{ user.usuario }}? Esta acción no se puede deshacer.')">
-                                                <span class="icon is-small">
-                                                    <i class="fas fa-trash"></i>
-                                                </span>
-                                                <span>Eliminar</span>
-                                            </button>
-                                        </form>
+                                            {% if user.cuenta_bloqueada %}
+                                            <form method="POST" action="{{ url_for('users.desbloquear', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="button is-small is-success" 
+                                                        onclick="return confirm('¿Estás seguro de desbloquear al usuario {{ user.usuario }}?')">
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-unlock"></i>
+                                                    </span>
+                                                    <span>Desbloquear</span>
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <form method="POST" action="{{ url_for('users.bloquear', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="button is-small is-danger" 
+                                                        onclick="return confirm('¿Estás seguro de bloquear al usuario {{ user.usuario }}? Se cerrarán todas sus sesiones activas.')">
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-ban"></i>
+                                                    </span>
+                                                    <span>Bloquear</span>
+                                                </button>
+                                            </form>
+                                            {% endif %}
                                         {% else %}
-                                        <button class="button is-small is-danger" disabled title="No puedes eliminar tu propia cuenta">
+                                        <button class="button is-small is-danger" disabled title="No puedes bloquear tu propia cuenta">
                                             <span class="icon is-small">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="fas fa-ban"></i>
                                             </span>
-                                            <span>Eliminar</span>
+                                            <span>Bloquear</span>
                                         </button>
                                         {% endif %}
                                     </div>
@@ -138,7 +182,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="has-text-centered">
+                                <td colspan="7" class="has-text-centered">
                                     <div class="content">
                                         <p>
                                             <i class="fas fa-users fa-3x has-text-grey-light"></i>
@@ -158,16 +202,46 @@
                 <div class="content">
                     <p><strong>Información:</strong></p>
                     <ul>
-                        <li>Solo los administradores pueden acceder a esta sección</li>
-                        <li>No puedes eliminar tu propia cuenta</li>
-                        <li>No puedes cambiar tus propios permisos de administrador</li>
-                        <li>Ten cuidado al eliminar usuarios, esta acción no se puede deshacer</li>
+                        <li>Solo los administradores completos (rol 3) pueden acceder a esta sección</li>
+                        <li>Esta vista muestra únicamente usuarios aprobados y pendientes</li>
+                        <li>Los usuarios rechazados no aparecen aquí (consulta el historial para verlos)</li>
+                        <li>No puedes bloquear tu propia cuenta</li>
+                        <li>No puedes cambiar tu propio rol</li>
+                        <li>Al cambiar el rol de un usuario, se invalidarán todas sus sesiones activas</li>
+                        <li>Al bloquear un usuario, se cerrarán todas sus sesiones activas y no podrá iniciar sesión</li>
+                        <li>Los usuarios bloqueados pueden ser desbloqueados en cualquier momento</li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function cambiarRol(userId, username) {
+    const nuevoRol = document.getElementById(`rol-${userId}`).value;
+    const roles = {1: 'Participante', 2: 'Organizador', 3: 'Administrador'};
+    
+    if (confirm(`¿Estás seguro de cambiar el rol de ${username} a ${roles[nuevoRol]}? Se cerrarán todas sus sesiones activas.`)) {
+        // Crear formulario dinámico para enviar la petición
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/users/cambiar_rol/${userId}`;
+        
+        const inputRol = document.createElement('input');
+        inputRol.type = 'hidden';
+        inputRol.name = 'nuevo_rol';
+        inputRol.value = nuevoRol;
+        
+        form.appendChild(inputRol);
+        document.body.appendChild(form);
+        form.submit();
+    } else {
+        // Revertir el selector al valor original si cancela
+        location.reload();
+    }
+}
+</script>
 
 <style>
 .table td {
@@ -180,10 +254,19 @@
 
 .buttons {
     flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .buttons .button {
     margin-bottom: 0.25rem;
+}
+
+.field.has-addons {
+    margin-bottom: 0.5rem;
+}
+
+.select.is-small {
+    font-size: 0.75rem;
 }
 
 @media screen and (max-width: 768px) {
@@ -194,6 +277,14 @@
     .buttons .button {
         width: 100%;
         margin-bottom: 0.5rem;
+    }
+    
+    .field.has-addons {
+        width: 100%;
+    }
+    
+    .field.has-addons .select {
+        width: 100%;
     }
 }
 </style>

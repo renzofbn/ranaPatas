@@ -209,11 +209,14 @@ def detalle(nombre_evento):
                 p.tiempo_total, p.usuario_agregado_en,
                 u_agregado.usuario as agregado_por,
                 u_iniciado.usuario as iniciado_por,
-                u_terminado.usuario as terminado_por
+                u_terminado.usuario as terminado_por,
+                p.usuario_id,
+                u_participante.usuario as usuario_participante
             FROM participantes_evento p
             LEFT JOIN usuarios u_agregado ON p.participante_agregado_por = u_agregado.id
             LEFT JOIN usuarios u_iniciado ON p.tiempo_iniciado_por = u_iniciado.id
             LEFT JOIN usuarios u_terminado ON p.tiempo_terminado_por = u_terminado.id
+            LEFT JOIN usuarios u_participante ON p.usuario_id = u_participante.id
             WHERE p.evento_id = %s
             ORDER BY p.usuario_agregado_en ASC
         """, (evento['id'],))
@@ -256,7 +259,9 @@ def detalle(nombre_evento):
                 'agregado_por': p[7],
                 'iniciado_por': p[8],
                 'terminado_por': p[9],
-                'estado': estado
+                'estado': estado,
+                'usuario_id': p[10],
+                'usuario_participante': p[11]
             }
             participantes.append(participante)
         
@@ -424,13 +429,30 @@ def agregar_participante(nombre_evento):
     try:
         codigo = request.form.get('codigo', '').strip()
         nombre = request.form.get('nombre', '').strip()
+        usuario_id = request.form.get('usuario_id', '').strip()
         
         if not codigo or not nombre:
             flash('Código y nombre son requeridos', 'error')
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
+        # Validar que se proporcionó un usuario_id válido
+        if not usuario_id:
+            flash('Debes seleccionar un usuario válido de la lista', 'error')
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
         mysql = get_mysql()
         cur = mysql.connection.cursor()
+        
+        # Obtener ID del usuario actual
+        usuario_actual = get_current_user()
+        
+        # Verificar que el usuario existe
+        cur.execute("SELECT nombre FROM usuarios WHERE id = %s", (usuario_id,))
+        usuario_info = cur.fetchone()
+        if not usuario_info:
+            flash('El usuario seleccionado no existe', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
         # Extraer el ID del slug (formato: ID-nombre)
         evento_id = None
@@ -473,15 +495,23 @@ def agregar_participante(nombre_evento):
             cur.close()
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
-        # Obtener ID del usuario actual
-        usuario_actual = get_current_user()
+        # Verificar que el usuario no esté ya participando en este evento
+        cur.execute("""
+            SELECT id FROM participantes_evento 
+            WHERE evento_id = %s AND usuario_id = %s
+        """, (evento_id, usuario_id))
         
-        # Insertar el nuevo participante
+        if cur.fetchone():
+            flash(f'El usuario "{usuario_info[0]}" ya está participando en este evento', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Insertar el nuevo participante con referencia al usuario
         cur.execute("""
             INSERT INTO participantes_evento 
-            (codigo, nombre, participante_agregado_por, evento_id)
-            VALUES (%s, %s, %s, %s)
-        """, (codigo, nombre, usuario_actual['id'], evento_id))
+            (codigo, nombre, usuario_id, participante_agregado_por, evento_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (codigo, nombre, usuario_id, usuario_actual['id'], evento_id))
         
         mysql.connection.commit()
         cur.close()

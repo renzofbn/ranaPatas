@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %} - Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-full">
+            <!-- Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title is-3">
+                                <i class="fas fa-clipboard-list mr-2"></i>
+                                Evaluaciones
+                            </h1>
+                            <p class="subtitle is-6">Gestiona las evaluaciones del sistema</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    {% if can_manage %}
+                    <div class="level-item">
+                        <a href="{{ url_for('evaluaciones.crear') }}" class="button is-primary">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>Nueva Evaluación</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="columns mb-5">
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Total Evaluaciones</p>
+                        <p class="title is-3">{{ evaluaciones|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Activas</p>
+                        <p class="title is-3">{{ evaluaciones|selectattr('activa', 'equalto', true)|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Inactivas</p>
+                        <p class="title is-3">{{ evaluaciones|selectattr('activa', 'equalto', false)|list|length }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered">
+                        <p class="heading">Participantes Total</p>
+                        <p class="title is-3">{{ evaluaciones|map(attribute='stats.total')|sum }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de evaluaciones -->
+            <div class="box">
+                {% if evaluaciones %}
+                    {% for evaluacion in evaluaciones %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                <div class="media">
+                                    <div class="media-left">
+                                        <span class="icon is-large">
+                                            <i class="fas fa-clipboard-list fa-2x {% if evaluacion.activa %}has-text-success{% else %}has-text-grey{% endif %}"></i>
+                                        </span>
+                                    </div>
+                                    <div class="media-content">
+                                        <p class="title is-5">{{ evaluacion.nombre }}</p>
+                                        <p class="subtitle is-6">
+                                            Creada por: {{ evaluacion.creado_por_nombre or evaluacion.creado_por_usuario }}
+                                            <span class="has-text-grey-light">|</span>
+                                            {{ evaluacion.fecha_creada.strftime('%d/%m/%Y %H:%M') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-header-icon">
+                                <span class="tag {% if evaluacion.activa %}is-success{% else %}is-danger{% endif %}">
+                                    {% if evaluacion.activa %}
+                                        <i class="fas fa-check mr-1"></i>
+                                        Activa
+                                    {% else %}
+                                        <i class="fas fa-times mr-1"></i>
+                                        Inactiva
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            {% if evaluacion.observacion %}
+                            <div class="content">
+                                <p>{{ evaluacion.observacion }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Estadísticas de participantes -->
+                            <div class="field is-grouped is-grouped-multiline">
+                                <div class="control">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark">Total</span>
+                                        <span class="tag is-info">{{ evaluacion.stats.total }}</span>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark">Pendientes</span>
+                                        <span class="tag is-warning">{{ evaluacion.stats.pendientes }}</span>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark">En Progreso</span>
+                                        <span class="tag is-link">{{ evaluacion.stats.en_progreso }}</span>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark">Completadas</span>
+                                        <span class="tag is-success">{{ evaluacion.stats.completadas }}</span>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark">Canceladas</span>
+                                        <span class="tag is-danger">{{ evaluacion.stats.canceladas }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('evaluaciones.detalle', evaluacion_id=evaluacion.id) }}" class="card-footer-item">
+                                <span class="icon">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                                <span>Ver Detalle</span>
+                            </a>
+                            {% if can_manage %}
+                            <a href="{{ url_for('evaluaciones.editar', evaluacion_id=evaluacion.id) }}" class="card-footer-item">
+                                <span class="icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span>Editar</span>
+                            </a>
+                            <a href="#" class="card-footer-item" onclick="toggleActiva({{ evaluacion.id }}, '{{ evaluacion.nombre }}', {{ evaluacion.activa|lower }})">
+                                <span class="icon">
+                                    <i class="fas fa-{% if evaluacion.activa %}pause{% else %}play{% endif %}"></i>
+                                </span>
+                                <span>{% if evaluacion.activa %}Desactivar{% else %}Activar{% endif %}</span>
+                            </a>
+                            {% if session.user_id == evaluacion.creado_por %}
+                            <!-- Debug: session.user_id = {{ session.user_id }}, evaluacion.creado_por = {{ evaluacion.creado_por }} -->
+                            <a href="#" class="card-footer-item has-text-danger" onclick="eliminarEvaluacion({{ evaluacion.id }}, '{{ evaluacion.nombre }}')">
+                                <span class="icon">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                                <span>Eliminar</span>
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="has-text-centered py-6">
+                        <p>
+                            <i class="fas fa-clipboard-list fa-3x has-text-grey-light"></i>
+                        </p>
+                        <p class="title is-5 has-text-grey">No hay evaluaciones creadas</p>
+                        {% if can_manage %}
+                        <p class="subtitle is-6 has-text-grey">
+                            <a href="{{ url_for('evaluaciones.crear') }}" class="button is-primary">
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>Crear primera evaluación</span>
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Información adicional -->
+            <div class="notification is-info is-light">
+                <div class="content">
+                    <p><strong>Información:</strong></p>
+                    <ul>
+                        <li>Todos los usuarios logueados pueden ver las evaluaciones</li>
+                        <li>Solo organizadores (rol 2) y administradores (rol 3) pueden crear y editar evaluaciones</li>
+                        <li>Solo el creador de una evaluación puede eliminarla</li>
+                        <li>Al eliminar una evaluación se eliminan automáticamente todos sus participantes asociados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleActiva(evaluacionId, nombre, estadoActual) {
+    const accion = estadoActual ? 'desactivar' : 'activar';
+    
+    if (confirm(`¿Estás seguro de ${accion} la evaluación "${nombre}"?`)) {
+        fetch(`/evaluaciones/toggle_activa/${evaluacionId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+
+function eliminarEvaluacion(evaluacionId, nombre) {
+    if (confirm(`¿Estás seguro de eliminar la evaluación "${nombre}"? Esta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/evaluaciones/eliminar/${evaluacionId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
+<style>
+.card {
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);
+}
+
+.tags {
+    margin-bottom: 0.5rem;
+}
+
+.media-content .title {
+    margin-bottom: 0.5rem;
+}
+
+.media-content .subtitle {
+    margin-bottom: 0;
+}
+
+@media screen and (max-width: 768px) {
+    .card-footer {
+        flex-direction: column;
+    }
+    
+    .card-footer-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dbdbdb;
+    }
+    
+    .card-footer-item:last-child {
+        border-bottom: none;
+    }
+}
+</style>
+{% endblock %}

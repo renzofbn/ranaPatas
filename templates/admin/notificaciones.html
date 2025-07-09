@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %} Notificaciones Admin {% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="container">
+    <nav class="breadcrumb">
+      <ul>
+        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="is-active"><a href="#" aria-current="page">Notificaciones</a></li>
+      </ul>
+    </nav>
+
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h1 class="title">Notificaciones Administrativas</h1>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <button class="button is-info" onclick="marcarTodasLeidas()">
+            <span class="icon">
+              <i class="fas fa-check-double"></i>
+            </span>
+            <span>Marcar todas como leídas</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {% if notificaciones %}
+      <div class="columns is-multiline">
+        {% for notif in notificaciones %}
+        <div class="column is-full">
+          <div class="box {% if not notif[5] %}has-background-warning-light{% endif %}" data-notif-id="{{ notif[0] }}">
+            <div class="level">
+              <div class="level-left">
+                <div class="level-item">
+                  <div>
+                    <div class="is-flex is-align-items-center mb-2">
+                      <span class="icon has-text-info mr-2">
+                        {% if notif[1] == 'nuevo_registro' %}
+                          <i class="fas fa-user-plus"></i>
+                        {% else %}
+                          <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                      </span>
+                      <strong class="title is-6">{{ notif[2] }}</strong>
+                      {% if not notif[5] %}
+                        <span class="tag is-warning ml-2">Nueva</span>
+                      {% endif %}
+                    </div>
+                    <p class="mb-2">{{ notif[3] }}</p>
+                    {% if notif[6] and notif[7] %}
+                      <p class="is-size-7 has-text-grey">
+                        Usuario relacionado: <strong>{{ notif[6] }}</strong> ({{ notif[7] }})
+                      </p>
+                    {% endif %}
+                    <p class="is-size-7 has-text-grey">
+                      {{ notif[4].strftime('%d/%m/%Y %H:%M') }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="level-right">
+                <div class="level-item">
+                  <div class="buttons">
+                    {% if notif[6] and notif[1] == 'nuevo_registro' %}
+                      <a href="{{ url_for('admin.usuarios_pendientes') }}" class="button is-small is-primary">
+                        <span class="icon">
+                          <i class="fas fa-user-check"></i>
+                        </span>
+                        <span>Gestionar</span>
+                      </a>
+                    {% endif %}
+                    {% if not notif[5] %}
+                      <button class="button is-small is-success" onclick="marcarLeida({{ notif[0] }})">
+                        <span class="icon">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>Marcar leída</span>
+                      </button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="box has-text-centered">
+        <span class="icon is-large has-text-success">
+          <i class="fas fa-bell-slash fa-2x"></i>
+        </span>
+        <p class="title is-4 mt-3">No hay notificaciones</p>
+        <p class="subtitle">Todas las notificaciones han sido procesadas</p>
+        <a href="{{ url_for('admin.dashboard') }}" class="button is-primary">Volver al Panel</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+function marcarLeida(notifId) {
+  fetch(`/admin/marcar_notificacion_leida/${notifId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const notifBox = document.querySelector(`[data-notif-id="${notifId}"]`);
+      notifBox.classList.remove('has-background-warning-light');
+      const tagNueva = notifBox.querySelector('.tag.is-warning');
+      if (tagNueva) tagNueva.remove();
+      const botonMarcar = notifBox.querySelector('.button.is-success');
+      if (botonMarcar) botonMarcar.remove();
+    } else {
+      alert('Error al marcar la notificación como leída');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al marcar la notificación como leída');
+  });
+}
+
+function marcarTodasLeidas() {
+  const notificacionesNoLeidas = document.querySelectorAll('.has-background-warning-light');
+  notificacionesNoLeidas.forEach(notif => {
+    const notifId = notif.dataset.notifId;
+    marcarLeida(notifId);
+  });
+}
+</script>
+
+{% endblock %}

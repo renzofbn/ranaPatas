@@ -6,7 +6,10 @@
     <div class="columns is-centered">
       <div class="column is-5-tablet is-4-desktop is-3-widescreen">
         <div class="box">
-          <h2 class="title is-4 has-text-centered">Registro</h2>
+          <h2 class="title is-4 has-text-centered">Registro de Usuario</h2>
+          <p class="has-text-centered mb-4 has-text-grey">
+            Tu cuenta será revisada por un administrador antes de ser activada.
+          </p>
           
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -21,23 +24,49 @@
           
           <form method="POST">
             <div class="field">
-              <div class="control">
-                <input class="input" type="text" name="usuario" placeholder="Nombre de usuario" required>
+              <label class="label">Nombre Completo</label>
+              <div class="control has-icons-left">
+                <input class="input" type="text" name="nombre" placeholder="Tu nombre completo" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-user"></i>
+                </span>
               </div>
             </div>
             <div class="field">
-              <div class="control">
-                <input class="input" type="email" name="correo" placeholder="Correo electrónico" required>
+              <label class="label">Nombre de Usuario</label>
+              <div class="control has-icons-left">
+                <input class="input" type="text" name="usuario" placeholder="Nombre de usuario único" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-at"></i>
+                </span>
+              </div>
+              <p class="help">Solo letras, números y guiones bajos. Mínimo 3 caracteres.</p>
+            </div>
+            <div class="field">
+              <label class="label">Correo Electrónico</label>
+              <div class="control has-icons-left">
+                <input class="input" type="email" name="correo" placeholder="tu@correo.com" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-envelope"></i>
+                </span>
               </div>
             </div>
             <div class="field">
-              <div class="control">
-                <input class="input" type="password" name="contrasena" placeholder="Contraseña" required>
+              <label class="label">Contraseña</label>
+              <div class="control has-icons-left">
+                <input class="input" type="password" name="contrasena" id="contrasena" placeholder="Mínimo 6 caracteres" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-lock"></i>
+                </span>
               </div>
             </div>
             <div class="field">
-              <div class="control">
-                <input class="input" type="password" name="confirmar_contrasena" placeholder="Repetir contraseña" required>
+              <label class="label">Confirmar Contraseña</label>
+              <div class="control has-icons-left">
+                <input class="input" type="password" name="confirmar_contrasena" id="confirmar_contrasena" placeholder="Repite tu contraseña" required>
+                <span class="icon is-small is-left">
+                  <i class="fas fa-lock"></i>
+                </span>
               </div>
             </div>
             <div class="field">
@@ -74,6 +103,45 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 300);
     });
   }, 5000);
+  
+  // Validación de contraseñas en tiempo real
+  const contrasena = document.getElementById('contrasena');
+  const confirmarContrasena = document.getElementById('confirmar_contrasena');
+  
+  function validarContrasenas() {
+    if (contrasena.value !== confirmarContrasena.value) {
+      confirmarContrasena.setCustomValidity('Las contraseñas no coinciden');
+      confirmarContrasena.classList.add('is-danger');
+      confirmarContrasena.classList.remove('is-success');
+    } else {
+      confirmarContrasena.setCustomValidity('');
+      confirmarContrasena.classList.remove('is-danger');
+      if (confirmarContrasena.value) {
+        confirmarContrasena.classList.add('is-success');
+      }
+    }
+  }
+  
+  // Validación de fortaleza de contraseña
+  function validarFortaleza() {
+    const password = contrasena.value;
+    if (password.length >= 6) {
+      contrasena.classList.remove('is-danger');
+      contrasena.classList.add('is-success');
+    } else if (password.length > 0) {
+      contrasena.classList.remove('is-success');
+      contrasena.classList.add('is-danger');
+    } else {
+      contrasena.classList.remove('is-success', 'is-danger');
+    }
+  }
+  
+  contrasena.addEventListener('input', function() {
+    validarFortaleza();
+    validarContrasenas();
+  });
+  
+  confirmarContrasena.addEventListener('input', validarContrasenas);
 });
 </script>
 {% endblock %}

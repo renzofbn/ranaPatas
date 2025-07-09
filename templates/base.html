@@ -47,6 +47,11 @@
             <div class="navbar-item has-dropdown is-hoverable">
               <a class="navbar-link">
                 Hola, {{ session.usuario }}
+                {% if session.rol == 3 %}
+                  <span class="tag is-primary is-small ml-1">Admin</span>
+                {% elif session.rol == 2 %}
+                  <span class="tag is-info is-small ml-1">Organizador</span>
+                {% endif %}
               </a>
               <div class="navbar-dropdown is-right">
                 <a class="navbar-item" href="/perfil">
@@ -55,13 +60,30 @@
                   </span>
                   <span>Mi Perfil</span>
                 </a>
-                {% if session.is_admin %}
-                <a class="navbar-item" href="/users">
+                <a class="navbar-item" href="/participante/{{ session.usuario }}">
                   <span class="icon">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-history"></i>
                   </span>
-                  <span>Usuarios</span>
+                  <span>Mis Participaciones</span>
                 </a>
+                {% if session.is_admin %}
+                <hr class="navbar-divider">
+                {% if session.rol == 3 %}
+                  <!-- Solo administradores completos (rol 3) -->
+                  <a class="navbar-item" href="/admin">
+                    <span class="icon">
+                      <i class="fas fa-cog"></i>
+                    </span>
+                    <span>Panel Admin</span>
+                  </a>
+                  <a class="navbar-item" href="/users">
+                    <span class="icon">
+                      <i class="fas fa-users"></i>
+                    </span>
+                    <span>Usuarios</span>
+                  </a>
+                {% endif %}
+                <!-- Tanto organizadores (rol 2) como administradores (rol 3) pueden ver todos los eventos -->
                 <a class="navbar-item" href="/eventos/todos">
                   <span class="icon">
                     <i class="fas fa-calendar-alt"></i>
@@ -69,6 +91,14 @@
                   <span>Todos los Eventos</span>
                 </a>
                 {% endif %}
+                <hr class="navbar-divider">
+                <!-- Evaluaciones - disponible para todos los usuarios logueados -->
+                <a class="navbar-item" href="/evaluaciones">
+                  <span class="icon">
+                    <i class="fas fa-clipboard-list"></i>
+                  </span>
+                  <span>Evaluaciones</span>
+                </a>
                 <hr class="navbar-divider">
                 <a class="navbar-item" href="/auth/logout">
                   <span class="icon">

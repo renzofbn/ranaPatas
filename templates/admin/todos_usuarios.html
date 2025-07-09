@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %} Historial de Usuarios {% endblock %}
+{% block content %}
+
+<section class="section">
+  <div class="container">
+    <nav class="breadcrumb">
+      <ul>
+        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+        <li class="is-active"><a href="#" aria-current="page">Historial de Usuarios</a></li>
+      </ul>
+    </nav>
+
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h1 class="title">Historial de Usuarios</h1>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <span class="tag is-info is-large">{{ usuarios|length }} usuario(s)</span>
+        </div>
+        <div class="level-item">
+          <a href="{{ url_for('users.index') }}" class="button is-primary">
+            <span class="icon">
+              <i class="fas fa-cogs"></i>
+            </span>
+            <span>Gestionar Usuarios</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="box">
+      <h3 class="subtitle is-6">
+        <span class="icon">
+          <i class="fas fa-filter"></i>
+        </span>
+        Filtros de Historial
+      </h3>
+      <div class="field is-grouped">
+        <div class="control">
+          <div class="select">
+            <select id="filtro-estado">
+              <option value="">Todos los estados</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="aprobado">Aprobados</option>
+              <option value="rechazado">Rechazados</option>
+            </select>
+          </div>
+        </div>
+        <div class="control">
+          <div class="select">
+            <select id="filtro-rol">
+              <option value="">Todos los roles</option>
+              <option value="1">Participantes</option>
+              <option value="2">Organizadores</option>
+              <option value="3">Administradores</option>
+            </select>
+          </div>
+        </div>
+        <div class="control is-expanded">
+          <input class="input" type="text" id="buscar-usuario" placeholder="Buscar por nombre, usuario o correo...">
+        </div>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3 class="subtitle is-6">
+        <span class="icon">
+          <i class="fas fa-history"></i>
+        </span>
+        Historial de Aprobaciones
+      </h3>
+      <div class="table-container">
+        <table class="table is-fullwidth is-hoverable" id="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Correo</th>
+              <th>Estado</th>
+              <th>Rol Asignado</th>
+              <th>Fecha Registro</th>
+              <th>Fecha Aprobación</th>
+              <th>Aprobado/Rechazado por</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for usuario in usuarios %}
+            <tr data-estado="{{ usuario[4] }}" data-rol="{{ usuario[8] or 1 }}" data-busqueda="{{ (usuario[1] + ' ' + usuario[2] + ' ' + usuario[3])|lower }}">
+              <td>
+                <strong>{{ usuario[1] }}</strong>
+              </td>
+              <td>
+                <span class="tag is-info">{{ usuario[2] }}</span>
+              </td>
+              <td>{{ usuario[3] }}</td>
+              <td>
+                {% if usuario[4] == 'pendiente' %}
+                  <span class="tag is-warning">
+                    <span class="icon">
+                      <i class="fas fa-clock"></i>
+                    </span>
+                    <span>Pendiente</span>
+                  </span>
+                {% elif usuario[4] == 'aprobado' %}
+                  <span class="tag is-success">
+                    <span class="icon">
+                      <i class="fas fa-check"></i>
+                    </span>
+                    <span>Aprobado</span>
+                  </span>
+                {% elif usuario[4] == 'rechazado' %}
+                  <span class="tag is-danger">
+                    <span class="icon">
+                      <i class="fas fa-times"></i>
+                    </span>
+                    <span>Rechazado</span>
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% set rol_id = usuario[8] or 1 %}
+                {% if rol_id == 1 %}
+                  <span class="tag is-light">
+                    <span class="icon">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <span>Participante</span>
+                  </span>
+                {% elif rol_id == 2 %}
+                  <span class="tag is-info">
+                    <span class="icon">
+                      <i class="fas fa-calendar-alt"></i>
+                    </span>
+                    <span>Organizador</span>
+                  </span>
+                {% elif rol_id == 3 %}
+                  <span class="tag is-primary">
+                    <span class="icon">
+                      <i class="fas fa-crown"></i>
+                    </span>
+                    <span>Administrador</span>
+                  </span>
+                {% else %}
+                  <span class="tag is-light">
+                    <span class="icon">
+                      <i class="fas fa-user"></i>
+                    </span>
+                    <span>Participante</span>
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="has-text-grey-dark">
+                  {{ usuario[5].strftime('%d/%m/%Y %H:%M') if usuario[5] else '-' }}
+                </span>
+              </td>
+              <td>
+                {% if usuario[6] %}
+                  <span class="has-text-grey-dark">
+                    {{ usuario[6].strftime('%d/%m/%Y %H:%M') }}
+                  </span>
+                {% else %}
+                  <span class="has-text-grey">Sin procesar</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if usuario[9] %}
+                  <span class="tag is-info is-light">
+                    <span class="icon">
+                      <i class="fas fa-user-shield"></i>
+                    </span>
+                    <span>{{ usuario[9] }}</span>
+                  </span>
+                {% else %}
+                  <span class="has-text-grey">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if usuario[4] != 'pendiente' %}
+                  <button class="button is-small is-light" onclick="verObservaciones('{{ usuario[2] }}', `{{ usuario[10] or 'Sin observaciones registradas' }}`)">
+                    <span class="icon">
+                      <i class="fas fa-eye"></i>
+                    </span>
+                    <span>Ver</span>
+                  </button>
+                {% else %}
+                  <span class="has-text-grey">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      {% if not usuarios %}
+      <div class="has-text-centered py-6">
+        <span class="icon is-large has-text-grey">
+          <i class="fas fa-history fa-2x"></i>
+        </span>
+        <p class="title is-4 mt-3 has-text-grey">No hay registros en el historial</p>
+        <p class="subtitle has-text-grey">Los usuarios registrados aparecerán aquí</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Información del historial -->
+    <div class="notification is-info is-light">
+      <div class="content">
+        <p><strong>Acerca del Historial de Usuarios:</strong></p>
+        <ul>
+          <li>Esta vista muestra el historial completo de todos los usuarios registrados</li>
+          <li>Puedes ver el proceso de aprobación de cada usuario</li>
+          <li>Para gestionar usuarios activamente, utiliza el <a href="{{ url_for('users.index') }}">Panel de Gestión de Usuarios</a></li>
+          <li>Las observaciones muestran los comentarios del administrador que procesó cada solicitud</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal para ver observaciones -->
+<div class="modal" id="modal-observaciones">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">
+        <span class="icon">
+          <i class="fas fa-comment-alt"></i>
+        </span>
+        Observaciones - <span id="usuario-observaciones"></span>
+      </p>
+      <button class="delete" aria-label="close" onclick="cerrarModal()"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="content">
+        <p id="texto-observaciones"></p>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button" onclick="cerrarModal()">Cerrar</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filtroEstado = document.getElementById('filtro-estado');
+  const filtroRol = document.getElementById('filtro-rol');
+  const buscarUsuario = document.getElementById('buscar-usuario');
+  const tabla = document.getElementById('tabla-usuarios');
+  const filas = tabla.querySelectorAll('tbody tr');
+
+  function filtrarTabla() {
+    const estadoFiltro = filtroEstado.value;
+    const rolFiltro = filtroRol.value;
+    const textoBusqueda = buscarUsuario.value.toLowerCase();
+
+    filas.forEach(fila => {
+      const estado = fila.dataset.estado;
+      const rol = fila.dataset.rol;
+      const textoBuscar = fila.dataset.busqueda;
+
+      let mostrar = true;
+
+      // Filtro por estado
+      if (estadoFiltro && estado !== estadoFiltro) {
+        mostrar = false;
+      }
+
+      // Filtro por rol
+      if (rolFiltro && rol !== rolFiltro) {
+        mostrar = false;
+      }
+
+      // Filtro por texto de búsqueda
+      if (textoBusqueda && !textoBuscar.includes(textoBusqueda)) {
+        mostrar = false;
+      }
+
+      fila.style.display = mostrar ? '' : 'none';
+    });
+
+    // Mostrar mensaje si no hay resultados visibles
+    const filasVisibles = Array.from(filas).filter(fila => fila.style.display !== 'none');
+    const mensaje = tabla.querySelector('.mensaje-sin-resultados');
+    
+    if (filasVisibles.length === 0 && !mensaje) {
+      const tbody = tabla.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.className = 'mensaje-sin-resultados';
+      tr.innerHTML = '<td colspan="9" class="has-text-centered py-4"><em>No se encontraron usuarios con los filtros aplicados</em></td>';
+      tbody.appendChild(tr);
+    } else if (filasVisibles.length > 0 && mensaje) {
+      mensaje.remove();
+    }
+  }
+
+  filtroEstado.addEventListener('change', filtrarTabla);
+  filtroRol.addEventListener('change', filtrarTabla);
+  buscarUsuario.addEventListener('input', filtrarTabla);
+});
+
+function verObservaciones(usuario, observaciones) {
+  document.getElementById('usuario-observaciones').textContent = usuario;
+  document.getElementById('texto-observaciones').textContent = observaciones;
+  document.getElementById('modal-observaciones').classList.add('is-active');
+}
+
+function cerrarModal() {
+  document.getElementById('modal-observaciones').classList.remove('is-active');
+}
+
+// Cerrar modal al hacer clic en el fondo
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('modal-observaciones');
+  if (modal) {
+    modal.querySelector('.modal-background').addEventListener('click', cerrarModal);
+  }
+});
+</script>
+
+{% endblock %}

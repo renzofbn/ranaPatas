@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+
+{% block title %} - Perfil de {{ usuario.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-11">
+            <!-- Header del perfil -->
+            <div class="box">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-64x64">
+                                        <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ usuario.nombre | urlencode }}&background=3273dc&color=fff&size=64" alt="Avatar">
+                                    </figure>
+                                </div>
+                                <div class="media-content">
+                                    <h1 class="title is-2">
+                                        <i class="fas fa-user mr-2 has-text-primary"></i>
+                                        {{ usuario.nombre }}
+                                    </h1>
+                                    <p class="subtitle is-5 has-text-grey">
+                                        <i class="fas fa-at mr-1"></i>
+                                        @{{ usuario.usuario }}
+                                    </p>
+                                    {% if usuario.fecha_registro %}
+                                    <p class="subtitle is-6 has-text-grey">
+                                        <i class="fas fa-calendar-plus mr-1"></i>
+                                        Registrado el {{ usuario.fecha_registro.strftime('%d/%m/%Y') }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            {% if es_propio_perfil %}
+                            <span class="tag is-primary is-large">
+                                <i class="fas fa-crown mr-2"></i>
+                                Tu perfil
+                            </span>
+                            {% else %}
+                            <span class="tag is-info is-large">
+                                <i class="fas fa-eye mr-2"></i>
+                                Perfil público
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas generales -->
+            <div class="columns mb-4">
+                <div class="column">
+                    <div class="box has-text-centered has-background-info-dark has-text-white">
+                        <p class="heading has-text-white-ter">Total Eventos</p>
+                        <p class="title is-3 has-text-white">{{ stats.total_eventos }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered has-background-success-dark has-text-white">
+                        <p class="heading has-text-white-ter">Completados</p>
+                        <p class="title is-3 has-text-white">{{ stats.completados }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered has-background-warning-dark has-text-white">
+                        <p class="heading has-text-white-ter">En Progreso</p>
+                        <p class="title is-3 has-text-white">{{ stats.en_progreso }}</p>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box has-text-centered has-background-danger-dark has-text-white">
+                        <p class="heading has-text-white-ter">Pendientes</p>
+                        <p class="title is-3 has-text-white">{{ stats.pendientes }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas de rendimiento -->
+            {% if stats.mejor_tiempo_str %}
+            <div class="columns mb-4">
+                <div class="column is-6">
+                    <div class="box has-text-centered has-background-primary-dark has-text-white">
+                        <p class="heading has-text-white-ter">Mejor Tiempo</p>
+                        <p class="title is-4 has-text-white">
+                            <i class="fas fa-trophy mr-2"></i>
+                            {{ stats.mejor_tiempo_str }}
+                        </p>
+                    </div>
+                </div>
+                <div class="column is-6">
+                    <div class="box has-text-centered has-background-link-dark has-text-white">
+                        <p class="heading has-text-white-ter">Tiempo Promedio</p>
+                        <p class="title is-4 has-text-white">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            {{ stats.tiempo_promedio_str }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Evaluaciones del Usuario -->
+            {% if evaluaciones %}
+            <div class="box">
+                <div class="level mb-4">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h2 class="title is-4">
+                                <i class="fas fa-clipboard-check mr-2"></i>
+                                Evaluaciones
+                            </h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <span class="tag is-primary">
+                                <i class="fas fa-list-ol mr-1"></i>
+                                {{ evaluaciones|length }} evaluaciones
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agrupar evaluaciones por nombre -->
+                {% set evaluaciones_agrupadas = {} %}
+                {% for evaluacion in evaluaciones %}
+                    {% if evaluacion.evaluacion_nombre not in evaluaciones_agrupadas %}
+                        {% set _ = evaluaciones_agrupadas.update({evaluacion.evaluacion_nombre: []}) %}
+                    {% endif %}
+                    {% set _ = evaluaciones_agrupadas[evaluacion.evaluacion_nombre].append(evaluacion) %}
+                {% endfor %}
+
+                <!-- Mostrar evaluaciones agrupadas -->
+                {% for nombre_evaluacion, grupo_evaluaciones in evaluaciones_agrupadas.items() %}
+                <div class="box mb-4 has-background-light">
+                    <h3 class="title is-5 has-text-primary">
+                        <i class="fas fa-clipboard-list mr-2"></i>
+                        {{ nombre_evaluacion }}
+                    </h3>
+                    
+                    {% if grupo_evaluaciones[0].observacion %}
+                    <p class="subtitle is-6 has-text-grey mb-4">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        {{ grupo_evaluaciones[0].observacion }}
+                    </p>
+                    {% endif %}
+
+                    <!-- Tiempos de esta evaluación -->
+                    <div class="columns is-multiline">
+                        {% for evaluacion in grupo_evaluaciones %}
+                        <div class="column is-6">
+                            <div class="box">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <div class="level-item">
+                                            <div class="content">
+                                                <p class="heading">
+                                                    <i class="fas fa-stopwatch mr-1"></i>
+                                                    Tiempo {{ loop.index }}
+                                                </p>
+                                                {% if evaluacion.tiempo_total_str %}
+                                                <p class="title is-4 has-text-primary">
+                                                    {{ evaluacion.tiempo_total_str }}
+                                                </p>
+                                                {% else %}
+                                                <p class="title is-5 has-text-grey">
+                                                    {% if evaluacion.estado == 'pendiente' %}
+                                                        <i class="fas fa-clock mr-1"></i>
+                                                        Pendiente
+                                                    {% elif evaluacion.estado == 'en_progreso' %}
+                                                        <i class="fas fa-running mr-1"></i>
+                                                        En Progreso
+                                                    {% elif evaluacion.estado == 'cancelada' %}
+                                                        <i class="fas fa-times-circle mr-1"></i>
+                                                        Cancelada
+                                                    {% else %}
+                                                        <i class="fas fa-question-circle mr-1"></i>
+                                                        Sin tiempo
+                                                    {% endif %}
+                                                </p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="level-item">
+                                            <!-- Estado -->
+                                            {% if evaluacion.estado == 'completada' %}
+                                                <span class="tag is-success">
+                                                    <i class="fas fa-check mr-1"></i>
+                                                    Completada
+                                                </span>
+                                            {% elif evaluacion.estado == 'en_progreso' %}
+                                                <span class="tag is-warning">
+                                                    <i class="fas fa-running mr-1"></i>
+                                                    En Progreso
+                                                </span>
+                                            {% elif evaluacion.estado == 'cancelada' %}
+                                                <span class="tag is-danger">
+                                                    <i class="fas fa-times-circle mr-1"></i>
+                                                    Cancelada
+                                                </span>
+                                            {% else %}
+                                                <span class="tag is-info">
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    Pendiente
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Información adicional -->
+                                <div class="content is-small">
+                                    {% if evaluacion.fecha_agregacion %}
+                                    <p class="has-text-grey">
+                                        <i class="fas fa-calendar-plus mr-1"></i>
+                                        Agregado: {{ evaluacion.fecha_agregacion.strftime('%d/%m/%Y a las %H:%M') }}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if evaluacion.tiempo_inicio %}
+                                    <p class="has-text-grey">
+                                        <i class="fas fa-play mr-1"></i>
+                                        Iniciado: {{ evaluacion.tiempo_inicio.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                        {% if evaluacion.iniciado_por %}
+                                        por @{{ evaluacion.iniciado_por }}
+                                        {% endif %}
+                                    </p>
+                                    {% endif %}
+                                    
+                                    {% if evaluacion.tiempo_final %}
+                                    <p class="has-text-grey">
+                                        <i class="fas fa-stop mr-1"></i>
+                                        Finalizado: {{ evaluacion.tiempo_final.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                        {% if evaluacion.terminado_por %}
+                                        por @{{ evaluacion.terminado_por }}
+                                        {% endif %}
+                                    </p>
+                                    {% endif %}
+
+                                    {% if evaluacion.participacion_observaciones %}
+                                    <p class="has-text-grey">
+                                        <i class="fas fa-comment mr-1"></i>
+                                        {{ evaluacion.participacion_observaciones }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Estadísticas de esta evaluación -->
+                    {% set tiempos_evaluacion = [] %}
+                    {% for eval in grupo_evaluaciones %}
+                        {% if eval.tiempo_total_segundos %}
+                            {% set _ = tiempos_evaluacion.append(eval.tiempo_total_segundos) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if tiempos_evaluacion %}
+                    <div class="box has-background-primary-light">
+                        <div class="columns">
+                            <div class="column is-4">
+                                <div class="has-text-centered">
+                                    <p class="heading">Mejor Tiempo</p>
+                                    {% set mejor_tiempo = tiempos_evaluacion | min %}
+                                    {% set horas = (mejor_tiempo // 3600) | int %}
+                                    {% set minutos = ((mejor_tiempo % 3600) // 60) | int %}
+                                    {% set segundos = (mejor_tiempo % 60) | int %}
+                                    <p class="title is-5">
+                                        {% if horas > 0 %}
+                                            {{ "%02d:%02d:%02d"|format(horas, minutos, segundos) }}
+                                        {% else %}
+                                            {{ "%02d:%02d"|format(minutos, segundos) }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="column is-4">
+                                <div class="has-text-centered">
+                                    <p class="heading">Tiempo Promedio</p>
+                                    {% set promedio_tiempo = (tiempos_evaluacion | sum) / (tiempos_evaluacion | length) %}
+                                    {% set horas = (promedio_tiempo // 3600) | int %}
+                                    {% set minutos = ((promedio_tiempo % 3600) // 60) | int %}
+                                    {% set segundos = (promedio_tiempo % 60) | int %}
+                                    <p class="title is-5">
+                                        {% if horas > 0 %}
+                                            {{ "%02d:%02d:%02d"|format(horas, minutos, segundos) }}
+                                        {% else %}
+                                            {{ "%02d:%02d"|format(minutos, segundos) }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="column is-4">
+                                <div class="has-text-centered">
+                                    <p class="heading">Total Completados</p>
+                                    <p class="title is-5">{{ tiempos_evaluacion | length }} / {{ grupo_evaluaciones | length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Historial de participaciones -->
+            <div class="box">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h2 class="title is-4">
+                                <i class="fas fa-history mr-2"></i>
+                                Historial de Participaciones
+                            </h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <div class="buttons">
+                                <a href="{{ url_for('eventos.index') }}" class="button is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                    <span>Ver Eventos</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if participaciones %}
+                <!-- Controles de filtrado -->
+                <div class="box mb-4 has-background-light">
+                    <div class="columns is-mobile">
+                        <div class="column is-4">
+                            <div class="field">
+                                <label class="label is-small">Filtrar por Evento</label>
+                                <div class="control has-icons-left">
+                                    <input class="input is-small" type="text" id="filtro-evento" placeholder="Nombre del evento">
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-4">
+                            <div class="field">
+                                <label class="label is-small">Filtrar por Estado</label>
+                                <div class="control">
+                                    <div class="select is-small is-fullwidth">
+                                        <select id="filtro-estado">
+                                            <option value="">Todos los estados</option>
+                                            <option value="completado">Completado</option>
+                                            <option value="en_progreso">En Progreso</option>
+                                            <option value="pendiente">Pendiente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-4">
+                            <div class="field">
+                                <label class="label is-small">Ordenar por</label>
+                                <div class="control">
+                                    <div class="select is-small is-fullwidth">
+                                        <select id="ordenar-por">
+                                            <option value="fecha_desc">Fecha (Más reciente)</option>
+                                            <option value="fecha_asc">Fecha (Más antiguo)</option>
+                                            <option value="tiempo_asc">Mejor Tiempo</option>
+                                            <option value="tiempo_desc">Peor Tiempo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="columns is-mobile">
+                        <div class="column">
+                            <button class="button is-small is-info" onclick="limpiarFiltros()">
+                                <span class="icon">
+                                    <i class="fas fa-undo"></i>
+                                </span>
+                                <span>Limpiar Filtros</span>
+                            </button>
+                            <span class="tag is-dark ml-2" id="contador-resultados">
+                                <i class="fas fa-list mr-1"></i>
+                                Mostrando todas las participaciones
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de participaciones -->
+                <div id="lista-participaciones">
+                    {% for participacion in participaciones %}
+                    <div class="box participacion-item" 
+                         data-evento="{{ participacion.evento_nombre.lower() }}"
+                         data-estado="{{ participacion.participante_estado }}"
+                         data-fecha="{{ participacion.fecha_inicio.timestamp() if participacion.fecha_inicio else 0 }}"
+                         data-tiempo="{{ participacion.tiempo_total_segundos or 999999 }}">
+                        
+                        <div class="columns is-mobile">
+                            <div class="column is-8">
+                                <div class="media">
+                                    <div class="media-left">
+                                        <figure class="image is-48x48">
+                                            {% set evento_color = '48c774' if participacion.participante_estado == 'completado' else ('ff3860' if participacion.participante_estado == 'en_progreso' else '3273dc') %}
+                                            <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ participacion.evento_nombre | urlencode }}&background={{ evento_color }}&color=fff&size=48" alt="Evento">
+                                        </figure>
+                                    </div>
+                                    <div class="media-content">
+                                        <p class="title is-5">{{ participacion.evento_nombre }}</p>
+                                        <p class="subtitle is-6 has-text-grey">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>
+                                            {{ participacion.lugar }}
+                                        </p>
+                                        {% if participacion.fecha_inicio %}
+                                        <p class="subtitle is-7 has-text-grey">
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            {{ participacion.fecha_inicio.strftime('%d/%m/%Y a las %H:%M') }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column is-4 has-text-right">
+                                <div class="field is-grouped is-grouped-multiline is-grouped-right">
+                                    <!-- Estado -->
+                                    {% if participacion.participante_estado == 'completado' %}
+                                        <div class="control">
+                                            <span class="tag is-success">
+                                                <i class="fas fa-check mr-1"></i>
+                                                Completado
+                                            </span>
+                                        </div>
+                                    {% elif participacion.participante_estado == 'en_progreso' %}
+                                        <div class="control">
+                                            <span class="tag is-warning">
+                                                <i class="fas fa-running mr-1"></i>
+                                                En Progreso
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <div class="control">
+                                            <span class="tag is-danger">
+                                                <i class="fas fa-clock mr-1"></i>
+                                                Pendiente
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Tiempo -->
+                                    {% if participacion.tiempo_total_str %}
+                                        <div class="control">
+                                            <span class="tag is-primary is-medium">
+                                                <i class="fas fa-stopwatch mr-1"></i>
+                                                <strong>{{ participacion.tiempo_total_str }}</strong>
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Código -->
+                                    <div class="control">
+                                        <span class="tag is-dark">
+                                            <i class="fas fa-hashtag mr-1"></i>
+                                            {{ participacion.codigo }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones de acción -->
+                                <div class="buttons is-right mt-2">
+                                    <a href="{{ url_for('participante.detalle_participacion', 
+                                                      nombre_usuario=usuario.usuario, 
+                                                      evento_id=participacion.evento_id) }}" 
+                                       class="button is-small is-info">
+                                        <span class="icon">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                        <span>Ver Detalles</span>
+                                    </a>
+                                    <a href="{{ url_for('eventos.detalle', 
+                                                      nombre_evento=evento_url_slug(participacion.evento_id, participacion.evento_nombre)) }}" 
+                                       class="button is-small is-light">
+                                        <span class="icon">
+                                            <i class="fas fa-calendar"></i>
+                                        </span>
+                                        <span>Ver Evento</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Mensaje cuando no hay participaciones -->
+                <div class="has-text-centered py-6">
+                    <i class="fas fa-calendar-times fa-4x has-text-grey-light"></i>
+                    <h3 class="title is-4 has-text-grey mt-4">No hay participaciones</h3>
+                    <p class="has-text-grey">{{ usuario.nombre }} aún no ha participado en ningún evento.</p>
+                    <a href="{{ url_for('eventos.index') }}" class="button is-primary mt-4">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>Ver Eventos Disponibles</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.participacion-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.participacion-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(10, 10, 10, 0.15);
+}
+
+.media {
+    align-items: center;
+}
+
+.field.is-grouped.is-grouped-multiline .control {
+    margin-bottom: 0.5rem;
+}
+
+/* Estilos para responsive */
+@media screen and (max-width: 768px) {
+    .columns.is-mobile .column.is-4.has-text-right {
+        text-align: left !important;
+    }
+    
+    .buttons.is-right {
+        justify-content: flex-start !important;
+    }
+    
+    .field.is-grouped.is-grouped-right {
+        justify-content: flex-start !important;
+    }
+}
+
+#contador-resultados {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarFiltros();
+});
+
+function inicializarFiltros() {
+    const items = document.querySelectorAll('.participacion-item');
+    const filtroEvento = document.getElementById('filtro-evento');
+    const filtroEstado = document.getElementById('filtro-estado');
+    const ordenarPor = document.getElementById('ordenar-por');
+    const contador = document.getElementById('contador-resultados');
+    
+    if (!items.length) return;
+    
+    // Event listeners
+    filtroEvento.addEventListener('input', aplicarFiltros);
+    filtroEstado.addEventListener('change', aplicarFiltros);
+    ordenarPor.addEventListener('change', aplicarFiltros);
+    
+    function aplicarFiltros() {
+        const textoEvento = filtroEvento.value.toLowerCase().trim();
+        const estadoSeleccionado = filtroEstado.value;
+        const ordenSeleccionado = ordenarPor.value;
+        
+        // Filtrar items
+        let itemsVisibles = Array.from(items).filter(item => {
+            const eventoTexto = item.dataset.evento;
+            const estado = item.dataset.estado;
+            
+            const cumpleEvento = textoEvento === '' || eventoTexto.includes(textoEvento);
+            const cumpleEstado = estadoSeleccionado === '' || estado === estadoSeleccionado;
+            
+            return cumpleEvento && cumpleEstado;
+        });
+        
+        // Ordenar items
+        itemsVisibles.sort((a, b) => {
+            switch(ordenSeleccionado) {
+                case 'fecha_asc':
+                    return parseFloat(a.dataset.fecha) - parseFloat(b.dataset.fecha);
+                case 'fecha_desc':
+                    return parseFloat(b.dataset.fecha) - parseFloat(a.dataset.fecha);
+                case 'tiempo_asc':
+                    return parseFloat(a.dataset.tiempo) - parseFloat(b.dataset.tiempo);
+                case 'tiempo_desc':
+                    return parseFloat(b.dataset.tiempo) - parseFloat(a.dataset.tiempo);
+                default:
+                    return parseFloat(b.dataset.fecha) - parseFloat(a.dataset.fecha);
+            }
+        });
+        
+        // Ocultar todos los items
+        items.forEach(item => item.style.display = 'none');
+        
+        // Mostrar items filtrados
+        itemsVisibles.forEach(item => item.style.display = 'block');
+        
+        // Actualizar contador
+        actualizarContador(itemsVisibles.length, items.length);
+    }
+    
+    function actualizarContador(visibles, total) {
+        if (visibles === total) {
+            contador.innerHTML = `<i class="fas fa-list mr-1"></i>Mostrando todas las participaciones (${total})`;
+            contador.className = 'tag is-light ml-2';
+        } else {
+            contador.innerHTML = `<i class="fas fa-filter mr-1"></i>Mostrando ${visibles} de ${total} participaciones`;
+            contador.className = 'tag is-info ml-2';
+        }
+    }
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtro-evento').value = '';
+    document.getElementById('filtro-estado').value = '';
+    document.getElementById('ordenar-por').value = 'fecha_desc';
+    
+    // Disparar evento para actualizar
+    const event = new Event('input', { bubbles: true });
+    document.getElementById('filtro-evento').dispatchEvent(event);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %} - {{ usuario.nombre }} en {{ participacion.evento_nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-8" style="margin-top: 40px !important; margin-bottom: 40px !important; padding-left: 8px !important; padding-right: 8px !important;">
+    <div class="columns is-centered">
+        <div class="column is-11">
+            <!-- Navegación -->
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('eventos.index') }}">Eventos</a></li>
+                    <li><a href="{{ url_for('participante.perfil_participante', nombre_usuario=usuario.usuario) }}">{{ usuario.nombre }}</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">{{ participacion.evento_nombre }}</a></li>
+                </ul>
+            </nav>
+
+            <!-- Header -->
+            <div class="box">
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div class="media">
+                                <div class="media-left">
+                                    <figure class="image is-64x64">
+                                        {% set estado_color = '48c774' if participacion.participante_estado == 'completado' else ('ff3860' if participacion.participante_estado == 'en_progreso' else '3273dc') %}
+                                        <img class="is-rounded" src="https://ui-avatars.com/api/?name={{ usuario.nombre | urlencode }}&background={{ estado_color }}&color=fff&size=64" alt="Avatar">
+                                    </figure>
+                                </div>
+                                <div class="media-content">
+                                    <h1 class="title is-3">
+                                        <i class="fas fa-user-clock mr-2 has-text-primary"></i>
+                                        {{ usuario.nombre }} en {{ participacion.evento_nombre }}
+                                    </h1>
+                                    <p class="subtitle is-5 has-text-grey">
+                                        <i class="fas fa-hashtag mr-1"></i>
+                                        Código: {{ participacion.codigo }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <div class="buttons">
+                                <a href="{{ url_for('participante.perfil_participante', nombre_usuario=usuario.usuario) }}" class="button is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>Volver al Perfil</span>
+                                </a>
+                                <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(participacion.evento_id, participacion.evento_nombre)) }}" class="button is-info">
+                                    <span class="icon">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                    <span>Ver Evento</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <!-- Información principal -->
+                <div class="column is-two-thirds">
+                    <!-- Detalles del evento -->
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Información del Evento
+                        </h2>
+                        
+                        <div class="content">
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-calendar-alt mr-2 has-text-info"></i>
+                                    Fecha del Evento
+                                </label>
+                                <div class="box has-background-info-dark">
+                                    {% if participacion.fecha_inicio %}
+                                    <p class="is-size-5 has-text-white">
+                                        <strong class="has-text-white">
+                                            {% set dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                                            {% set meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] %}
+                                            {{ dias[participacion.fecha_inicio.weekday()] }}, {{ participacion.fecha_inicio.day }} de {{ meses[participacion.fecha_inicio.month - 1] }} de {{ participacion.fecha_inicio.year }}
+                                        </strong>
+                                        <br>
+                                        <span class="has-text-white">{{ participacion.fecha_inicio.strftime('%H:%M hrs') }}</span>
+                                    </p>
+                                    {% else %}
+                                    <p class="is-size-5 has-text-white">Fecha no especificada</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-map-marker-alt mr-2 has-text-danger"></i>
+                                    Lugar
+                                </label>
+                                <div class="box has-background-primary-dark">
+                                    <p class="is-size-5 has-text-white"><strong class="has-text-white">{{ participacion.lugar }}</strong></p>
+                                </div>
+                            </div>
+
+                            {% if participacion.observaciones %}
+                            <div class="field">
+                                <label class="label">
+                                    <i class="fas fa-sticky-note mr-2 has-text-warning"></i>
+                                    Observaciones
+                                </label>
+                                <div class="box">
+                                    <p>{{ participacion.observaciones }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Detalles de la participación -->
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-stopwatch mr-2"></i>
+                            Detalles de Participación
+                        </h2>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Tiempo de Inicio</p>
+                                    {% if participacion.tiempo_inicio %}
+                                    <p class="title is-4 has-text-info">
+                                        <i class="fas fa-play mr-2"></i>
+                                        {{ participacion.tiempo_inicio.strftime('%H:%M:%S') }}
+                                    </p>
+                                    {% else %}
+                                    <p class="title is-4 has-text-grey">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        No iniciado
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Tiempo de Llegada</p>
+                                    {% if participacion.tiempo_llegada %}
+                                    <p class="title is-4 has-text-success">
+                                        <i class="fas fa-flag-checkered mr-2"></i>
+                                        {{ participacion.tiempo_llegada.strftime('%H:%M:%S') }}
+                                    </p>
+                                    {% else %}
+                                    <p class="title is-4 has-text-grey">
+                                        <i class="fas fa-clock mr-2"></i>
+                                        No completado
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Tiempo Total</p>
+                                    {% if participacion.tiempo_total_str %}
+                                    <p class="title is-4 has-text-primary">
+                                        <i class="fas fa-trophy mr-2"></i>
+                                        {{ participacion.tiempo_total_str }}
+                                    </p>
+                                    {% else %}
+                                    <p class="title is-4 has-text-grey">
+                                        <i class="fas fa-minus mr-2"></i>
+                                        Sin tiempo
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ranking -->
+                    {% if participacion.posicion and ranking %}
+                    <div class="box">
+                        <h2 class="title is-4">
+                            <i class="fas fa-medal mr-2"></i>
+                            Ranking del Evento
+                        </h2>
+                        
+                        <div class="notification is-info is-light mb-4">
+                            <p class="has-text-centered">
+                                <strong>{{ usuario.nombre }}</strong> terminó en la posición 
+                                <strong class="has-text-primary">{{ participacion.posicion }}</strong> 
+                                de {{ participacion.total_completados }} participantes que completaron el evento.
+                            </p>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Posición</th>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Tiempo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pos, rank in ranking[:10] | enumerate(1) %}
+                                    <tr class="{% if rank[0] == participacion.codigo %}has-background-primary-light{% endif %}">
+                                        <td>
+                                            <span class="tag {% if pos == 1 %}is-warning{% elif pos == 2 %}is-light{% elif pos == 3 %}is-dark{% else %}is-info{% endif %}">
+                                                {% if pos == 1 %}
+                                                    <i class="fas fa-trophy mr-1"></i>
+                                                {% elif pos == 2 %}
+                                                    <i class="fas fa-medal mr-1"></i>
+                                                {% elif pos == 3 %}
+                                                    <i class="fas fa-medal mr-1"></i>
+                                                {% endif %}
+                                                #{{ pos }}
+                                            </span>
+                                        </td>
+                                        <td><strong>{{ rank[0] }}</strong></td>
+                                        <td>
+                                            {{ rank[1] }}
+                                            {% if rank[0] == participacion.codigo %}
+                                            <span class="tag is-primary is-small ml-2">
+                                                <i class="fas fa-user mr-1"></i>
+                                                Tú
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if rank[2] and rank[3] %}
+                                            {% set tiempo_diff = rank[3] - rank[2] %}
+                                            {% set segundos_totales = tiempo_diff.total_seconds() %}
+                                            {% set horas = (segundos_totales // 3600) | int %}
+                                            {% set minutos = ((segundos_totales % 3600) // 60) | int %}
+                                            {% set segundos = (segundos_totales % 60) | int %}
+                                            
+                                            <span class="tag is-primary">
+                                                <i class="fas fa-stopwatch mr-1"></i>
+                                                {% if horas > 0 %}{{ "%02d:%02d:%02d" | format(horas, minutos, segundos) }}{% else %}{{ "%02d:%02d" | format(minutos, segundos) }}{% endif %}
+                                            </span>
+                                            {% else %}
+                                            <span class="tag is-grey">Sin tiempo</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar -->
+                <div class="column is-one-third">
+                    <!-- Estado actual -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-flag mr-2"></i>
+                            Estado Actual
+                        </h3>
+                        
+                        <div class="has-text-centered">
+                            {% if participacion.participante_estado == 'completado' %}
+                                <span class="tag is-success is-large">
+                                    <i class="fas fa-check mr-2"></i>
+                                    Completado
+                                </span>
+                            {% elif participacion.participante_estado == 'en_progreso' %}
+                                <span class="tag is-warning is-large">
+                                    <i class="fas fa-running mr-2"></i>
+                                    En Progreso
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger is-large">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    Pendiente
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información adicional -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-info mr-2"></i>
+                            Información Adicional
+                        </h3>
+                        
+                        <div class="content">
+                            <p>
+                                <strong>Agregado por:</strong> 
+                                {% if participacion.agregado_por %}
+                                    @{{ participacion.agregado_por }}
+                                {% else %}
+                                    No disponible
+                                {% endif %}
+                            </p>
+                            
+                            {% if participacion.fecha_agregado %}
+                            <p>
+                                <strong>Fecha de registro:</strong> 
+                                {{ participacion.fecha_agregado.strftime('%d/%m/%Y a las %H:%M') }}
+                            </p>
+                            {% endif %}
+                            
+                            <p>
+                                <strong>Creador del evento:</strong> 
+                                {% if participacion.evento_creador %}
+                                    @{{ participacion.evento_creador }}
+                                {% else %}
+                                    No disponible
+                                {% endif %}
+                            </p>
+                            
+                            <p>
+                                <strong>Estado del evento:</strong> 
+                                <span class="tag is-small is-info">{{ participacion.evento_estado | title }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-cog mr-2"></i>
+                            Acciones
+                        </h3>
+                        
+                        <div class="buttons">
+                            <a href="{{ url_for('participante.perfil_participante', nombre_usuario=usuario.usuario) }}" class="button is-light is-fullwidth">
+                                <span class="icon">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <span>Ver Perfil Completo</span>
+                            </a>
+                            
+                            <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(participacion.evento_id, participacion.evento_nombre)) }}" class="button is-info is-fullwidth">
+                                <span class="icon">
+                                    <i class="fas fa-calendar"></i>
+                                </span>
+                                <span>Ver Evento Completo</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.has-background-primary-light {
+    background-color: #ebf3ff !important;
+}
+
+.box {
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+
+.media {
+    align-items: center;
+}
+
+.field .box {
+    margin-bottom: 0;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.heading {
+    color: #767676;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

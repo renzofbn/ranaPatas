@@ -22,6 +22,10 @@ def login():
         
         try:
             mysql = get_mysql()
+            if not mysql:
+                flash('Error de conexión a la base de datos', 'error')
+                return render_template('auth/login.html')
+                
             cur = mysql.connection.cursor()
             
             # Buscar usuario por nombre de usuario o correo
@@ -34,42 +38,62 @@ def login():
                 flash('Usuario o contraseña incorrectos', 'error')
                 return render_template('auth/login.html')
             
+            # Manejar tanto tuplas como diccionarios dependiendo de la configuración
+            if isinstance(user, dict):
+                user_id = user['id']
+                username = user['usuario'] 
+                email = user['correo']
+                password_hash = user['contrasena']
+                is_admin = user['isAdmin']
+                estado = user['estado_aprobacion']
+                rol = user['rol']
+                bloqueada = user['cuenta_bloqueada']
+            else:
+                user_id = user[0]
+                username = user[1]
+                email = user[2] 
+                password_hash = user[3]
+                is_admin = user[4]
+                estado = user[5]
+                rol = user[6]
+                bloqueada = user[7]
+            
             # Verificar si la cuenta está bloqueada
-            if user[7]:  # cuenta_bloqueada
+            if bloqueada:
                 flash('Tu cuenta ha sido bloqueada por un administrador. Contacta al administrador para más información.', 'error')
                 return render_template('auth/login.html')
             
             # Verificar estado de aprobación
-            if user[5] == 'pendiente':  # estado_aprobacion
+            if estado == 'pendiente':
                 flash('Tu cuenta está pendiente de aprobación por un administrador.', 'error')
                 return render_template('auth/login.html')
-            elif user[5] == 'rechazado':
+            elif estado == 'rechazado':
                 flash('Tu cuenta ha sido rechazada. Contacta al administrador para más información.', 'error')
                 return render_template('auth/login.html')
             
             # Verificar contraseña
-            if not check_password(contrasena, user[3]):  # user[3] es la contraseña hasheada
+            if not check_password(contrasena, password_hash):
                 flash('Usuario o contraseña incorrectos', 'error')
                 return render_template('auth/login.html')
             
             # Login exitoso - actualizar último login
             cur = mysql.connection.cursor()
-            cur.execute("UPDATE usuarios SET ultimo_login = NOW() WHERE id = %s", (user[0],))
+            cur.execute("UPDATE usuarios SET ultimo_login = NOW() WHERE id = %s", (user_id,))
             mysql.connection.commit()
             cur.close()
             
             # Crear sesión tradicional
-            session['user_id'] = user[0]      # id
-            session['usuario'] = user[1]      # usuario
-            session['correo'] = user[2]       # correo
-            session['is_admin'] = bool(user[4])  # isAdmin
-            session['rol'] = user[6] or 1      # rol (default 1 si es None)
+            session['user_id'] = user_id
+            session['usuario'] = username
+            session['correo'] = email
+            session['is_admin'] = bool(is_admin)
+            session['rol'] = rol or 1
             session['logged_in'] = True
             
             # Crear token de sesión
-            token = create_session(user[0], remember_me)
+            token = create_session(user_id, remember_me)
             
-            flash(f'¡Bienvenido {user[1]}!', 'success')
+            flash(f'¡Bienvenido {username}!', 'success')
             
             # Crear respuesta y establecer cookie del token
             next_page = request.args.get('next')
@@ -90,7 +114,22 @@ def login():
             return response
             
         except Exception as e:
-            flash(f'Error al iniciar sesión: {str(e)}', 'error')
+            # Log detallado del error para debugging
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error en login: {str(e)}")
+            print(f"Detalles del error: {error_details}")
+            
+            # Error más específico para el usuario
+            if "1045" in str(e):
+                flash('Error de autenticación con la base de datos', 'error')
+            elif "2003" in str(e):
+                flash('No se puede conectar con la base de datos', 'error') 
+            elif "1146" in str(e):
+                flash('Tabla de usuarios no encontrada', 'error')
+            else:
+                flash(f'Error al iniciar sesión. Código: {str(e)[:50]}', 'error')
+            
             return render_template('auth/login.html')
     
     return render_template('auth/login.html')

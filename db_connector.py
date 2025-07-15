@@ -20,6 +20,13 @@ def init_db(app):
     app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
     app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3306))
     
+    # Configuraciones adicionales para optimización
+    app.config['MYSQL_AUTOCOMMIT'] = True
+    app.config['MYSQL_CONNECT_TIMEOUT'] = 10
+    app.config['MYSQL_READ_TIMEOUT'] = 10
+    app.config['MYSQL_WRITE_TIMEOUT'] = 10
+    app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+    
     mysql = MySQL(app)
     return mysql
 

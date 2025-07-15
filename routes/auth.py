@@ -178,6 +178,8 @@ def register():
 
 @auth_bp.route('/logout')
 def logout():
+    from utils import cleanup_expired_sessions_if_needed
+    
     # Obtener token antes de limpiar la sesión
     token = request.cookies.get('session_token')
     
@@ -187,6 +189,9 @@ def logout():
     
     # Limpiar la sesión tradicional
     session.clear()
+    
+    # Aprovechar el logout para hacer limpieza ocasional
+    cleanup_expired_sessions_if_needed()
     
     # Crear respuesta y eliminar cookie
     response = make_response(redirect(url_for('blog.index')))

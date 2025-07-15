@@ -12,21 +12,7 @@ from routes.participante import participante_bp
 from routes.admin import admin_bp
 from routes.evaluaciones import evaluaciones_bp
 import atexit
-import threading
-import time
-
-def cleanup_sessions_periodically(app):
-    """Función para limpiar sesiones expiradas periódicamente"""
-    while True:
-        try:
-            with app.app_context():
-                from utils import cleanup_expired_sessions
-                cleanup_expired_sessions()
-            # Ejecutar cada hora
-            time.sleep(3600)
-        except Exception as e:
-            print(f"Error en limpieza de sesiones: {e}")
-            time.sleep(3600)
+from datetime import datetime, timedelta
 
 def create_app(config_name='default'):
     """Factory function para crear la aplicación Flask"""
@@ -35,12 +21,28 @@ def create_app(config_name='default'):
     # Cargar configuración
     app.config.from_object(config[config_name])
     
+    # Configurar logging mejorado
+    if not app.debug:
+        import logging
+        from logging.handlers import RotatingFileHandler
+        
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        
+        file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240000, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Aplicación iniciada')
+    
     # Inicializar la base de datos
     mysql = init_db(app)
     
-    # Iniciar hilo de limpieza de sesiones después de configurar la app
-    cleanup_thread = threading.Thread(target=cleanup_sessions_periodically, args=(app,), daemon=True)
-    cleanup_thread.start()
+    # Variable para tracking de última limpieza
+    app.config['LAST_CLEANUP'] = datetime.now()
     
     # Registrar blueprints
     app.register_blueprint(blog_bp)
@@ -81,8 +83,8 @@ def create_app(config_name='default'):
     # Hook para validar sesiones en cada request
     @app.before_request
     def validate_session_on_request():
-        from flask import request, session, redirect, url_for
-        from utils import get_current_user
+        from flask import request, session, redirect, url_for, g, current_app
+        from utils import get_current_user, cleanup_expired_sessions_if_needed
         
         # Rutas que no requieren validación de sesión
         exempt_routes = [
@@ -93,14 +95,31 @@ def create_app(config_name='default'):
         
         # Si la ruta actual no requiere autenticación, continuar
         if request.endpoint in exempt_routes or request.endpoint is None:
+            # Aprovechar requests a rutas públicas para limpieza ocasional
+            cleanup_expired_sessions_if_needed()
             return
         
-        # Si el usuario está logueado, validar que su sesión sigue siendo válida
-        if session.get('logged_in', False):
-            current_user = get_current_user()
-            if not current_user:
-                # Sesión inválida, limpiar y redirigir
-                session.clear()
+        # Cache del usuario en g para evitar múltiples consultas DB
+        if not hasattr(g, 'current_user'):
+            # Si el usuario está logueado, validar que su sesión sigue siendo válida
+            if session.get('logged_in', False):
+                try:
+                    current_user = get_current_user()
+                    if not current_user:
+                        # Sesión inválida, limpiar y redirigir
+                        session.clear()
+                        return redirect(url_for('auth.login'))
+                    g.current_user = current_user
+                    
+                    # Limpieza ocasional cuando hay actividad de usuarios
+                    cleanup_expired_sessions_if_needed()
+                    
+                except Exception as e:
+                    # Error al validar sesión, limpiar y redirigir
+                    app.logger.error(f"Error validando sesión: {e}")
+                    session.clear()
+                    return redirect(url_for('auth.login'))
+            else:
                 return redirect(url_for('auth.login'))
 
     return app

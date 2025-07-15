@@ -17,6 +17,12 @@ class Config:
     MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
     MYSQL_DB = os.getenv('MYSQL_DB')
     MYSQL_PORT = int(os.getenv('MYSQL_PORT', 3306))
+    
+    # Configuraciones adicionales para evitar timeouts
+    MYSQL_AUTOCOMMIT = True
+    MYSQL_CONNECT_TIMEOUT = 10
+    MYSQL_READ_TIMEOUT = 10
+    MYSQL_WRITE_TIMEOUT = 10
 
 class DevelopmentConfig(Config):
     """Configuración para desarrollo"""

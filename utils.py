@@ -7,6 +7,8 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta
 from flask import request
+from contextlib import contextmanager
+import time
 
 def validate_email(email):
     """Validar formato de email"""
@@ -351,6 +353,33 @@ def cleanup_expired_sessions():
         print(f"Error al limpiar sesiones expiradas: {e}")
         return False
 
+def cleanup_expired_sessions_if_needed():
+    """
+    Limpia sesiones expiradas solo si es necesario (sin usar time.sleep)
+    """
+    from flask import current_app
+    from datetime import datetime, timedelta
+    
+    try:
+        # Verificar si es tiempo de hacer limpieza (cada 6 horas)
+        last_cleanup = current_app.config.get('LAST_CLEANUP', datetime.now() - timedelta(hours=7))
+        now = datetime.now()
+        
+        # Solo limpiar si han pasado más de 6 horas
+        if now - last_cleanup > timedelta(hours=6):
+            current_app.logger.info("Iniciando limpieza de sesiones expiradas")
+            
+            # Llamar a la función de limpieza existente
+            cleanup_expired_sessions()
+            
+            # Actualizar timestamp de última limpieza
+            current_app.config['LAST_CLEANUP'] = now
+            
+            current_app.logger.info("Limpieza de sesiones completada")
+            
+    except Exception as e:
+        current_app.logger.error(f"Error en limpieza ocasional de sesiones: {e}")
+
 def get_user_sessions(user_id):
     """Obtener todas las sesiones activas de un usuario"""
     from db_connector import get_mysql
@@ -436,3 +465,82 @@ def recreate_session_after_password_change(user_id, user_data):
         return nuevo_token
     
     return None
+
+def safe_db_execute(query, params=None, fetch_one=False, fetch_all=False):
+    """
+    Ejecutar consultas de base de datos de forma segura con manejo de errores y timeouts
+    """
+    from db_connector import get_mysql
+    from flask import current_app
+    
+    mysql = get_mysql()
+    if not mysql:
+        raise Exception("Conexión a base de datos no disponible")
+    
+    max_retries = 3
+    retry_delay = 0.5
+    
+    for attempt in range(max_retries):
+        try:
+            cur = mysql.connection.cursor()
+            
+            # Establecer timeout para la consulta
+            if params:
+                cur.execute(query, params)
+            else:
+                cur.execute(query)
+            
+            result = None
+            if fetch_one:
+                result = cur.fetchone()
+            elif fetch_all:
+                result = cur.fetchall()
+            
+            # Solo hacer commit si no es una consulta SELECT
+            if query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE')):
+                mysql.connection.commit()
+            
+            cur.close()
+            return result
+            
+        except Exception as e:
+            if cur:
+                cur.close()
+            
+            # Si es el último intento, relanzar la excepción
+            if attempt == max_retries - 1:
+                current_app.logger.error(f"Error en consulta DB después de {max_retries} intentos: {e}")
+                raise e
+            
+            # Esperar antes de reintentar
+            time.sleep(retry_delay)
+            retry_delay *= 2  # Backoff exponencial
+    
+    return None
+
+@contextmanager
+def db_transaction():
+    """
+    Context manager para transacciones de base de datos
+    """
+    from db_connector import get_mysql
+    
+    mysql = get_mysql()
+    if not mysql:
+        raise Exception("Conexión a base de datos no disponible")
+    
+    cur = None
+    try:
+        cur = mysql.connection.cursor()
+        mysql.connection.autocommit(False)
+        yield cur
+        mysql.connection.commit()
+    except Exception as e:
+        if mysql.connection:
+            mysql.connection.rollback()
+        raise e
+    finally:
+        if cur:
+            cur.close()
+        if mysql.connection:
+            mysql.connection.autocommit(True)

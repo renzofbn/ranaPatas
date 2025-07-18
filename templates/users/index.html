@@ -65,19 +65,17 @@
                     <table class="table is-fullwidth is-striped is-hoverable">
                         <thead>
                             <tr>
-                                <th><abbr title="ID">ID</abbr></th>
                                 <th>Usuario</th>
                                 <th>Correo Electrónico</th>
                                 <th>Rol</th>
                                 <th>Estado</th>
-                                <th>Fecha Registro</th>
                                 <th>Acciones</th>
+                                <th>Extra</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for user in users %}
                             <tr>
-                                <td>{{ user.id }}</td>
                                 <td>
                                     <div class="media">
                                         <div class="media-left">
@@ -96,7 +94,7 @@
                                     {% if user_rol == 1 %}
                                         <span class="tag is-dark">
                                             <i class="fas fa-user mr-1"></i>
-                                            Participante
+                                            Usuario
                                         </span>
                                     {% elif user_rol == 2 %}
                                         <span class="tag is-info">
@@ -111,7 +109,7 @@
                                     {% else %}
                                         <span class="tag is-dark">
                                             <i class="fas fa-user mr-1"></i>
-                                            Participante
+                                            Usuario
                                         </span>
                                     {% endif %}
                                 </td>
@@ -128,7 +126,6 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>{{ user.fecha_registro }}</td>
                                 <td>
                                     <div class="buttons">
                                         <!-- Selector de Rol -->
@@ -137,7 +134,7 @@
                                             <div class="control">
                                                 <div class="select is-small">
                                                     <select id="rol-{{ user.id }}" onchange="cambiarRol({{ user.id }}, '{{ user.usuario }}')">
-                                                        <option value="1" {% if (user.rol or 1) == 1 %}selected{% endif %}>Participante</option>
+                                                        <option value="1" {% if (user.rol or 1) == 1 %}selected{% endif %}>Usuario</option>
                                                         <option value="2" {% if (user.rol or 1) == 2 %}selected{% endif %}>Organizador</option>
                                                         <option value="3" {% if (user.rol or 1) == 3 %}selected{% endif %}>Administrador</option>
                                                     </select>
@@ -179,10 +176,27 @@
                                         {% endif %}
                                     </div>
                                 </td>
+                                <td>
+                                    <!-- Columna Extra: Cambiar Contraseña -->
+                                    {% if session.rol == 3 %}
+                                    <div class="buttons">
+                                        <button class="button is-small is-warning" onclick="abrirModalContrasena({{ user.id }}, '{{ user.usuario }}')">
+                                            <span class="icon is-small">
+                                                <i class="fas fa-key"></i>
+                                            </span>
+                                            <span>Cambiar Contraseña</span>
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    <span class="has-text-grey-light">
+                                        <i class="fas fa-minus"></i>
+                                    </span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="7" class="has-text-centered">
+                                <td colspan="6" class="has-text-centered">
                                     <div class="content">
                                         <p>
                                             <i class="fas fa-users fa-3x has-text-grey-light"></i>
@@ -198,7 +212,7 @@
             </div>
 
             <!-- Información adicional -->
-            <div class="notification is-info is-light">
+            <!-- <div class="notification is-info is-light">
                 <div class="content">
                     <p><strong>Información:</strong></p>
                     <ul>
@@ -210,17 +224,76 @@
                         <li>Al cambiar el rol de un usuario, se invalidarán todas sus sesiones activas</li>
                         <li>Al bloquear un usuario, se cerrarán todas sus sesiones activas y no podrá iniciar sesión</li>
                         <li>Los usuarios bloqueados pueden ser desbloqueados en cualquier momento</li>
+                        <li><strong>Columna Extra:</strong> Permite cambiar la contraseña de cualquier usuario (solo admins rol 3)</li>
+                        <li>Al cambiar la contraseña de un usuario, se cerrarán todas sus sesiones activas</li>
+                        <li>El modal de cambio de contraseña requiere confirmación y validación de contraseñas</li>
+                        <li>Puedes cerrar el modal presionando ESC o hacer clic fuera del modal</li>
                     </ul>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>
 
+<!-- Modal para Cambiar Contraseña -->
+<div class="modal" id="modalContrasena">
+    <div class="modal-background" onclick="cerrarModalContrasena()"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <i class="fas fa-key mr-2"></i>
+                Cambiar Contraseña
+            </p>
+            <button class="delete" aria-label="close" onclick="cerrarModalContrasena()"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field">
+                <label class="label">Usuario:</label>
+                <div class="control">
+                    <input class="input" type="text" id="usuarioModal" readonly>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Nueva Contraseña:</label>
+                <div class="control has-icons-left">
+                    <input class="input" type="password" id="nuevaContrasenaModal" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    <span class="icon is-small is-left">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                </div>
+                <p class="help">La contraseña debe tener al menos 6 caracteres</p>
+            </div>
+            <div class="field">
+                <label class="label">Confirmar Contraseña:</label>
+                <div class="control has-icons-left">
+                    <input class="input" type="password" id="confirmarContrasenaModal" placeholder="Confirma la nueva contraseña" minlength="6" required>
+                    <span class="icon is-small is-left">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="notification is-warning is-light">
+                <p><strong>Atención:</strong> Al cambiar la contraseña se cerrarán todas las sesiones activas del usuario.</p>
+            </div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-success" onclick="confirmarCambioContrasena()">
+                <span class="icon">
+                    <i class="fas fa-check"></i>
+                </span>
+                <span>Cambiar Contraseña</span>
+            </button>
+            <button class="button" onclick="cerrarModalContrasena()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+
 <script>
+let userIdModal = null;
+
 function cambiarRol(userId, username) {
     const nuevoRol = document.getElementById(`rol-${userId}`).value;
-    const roles = {1: 'Participante', 2: 'Organizador', 3: 'Administrador'};
+    const roles = {1: 'Usuario', 2: 'Organizador', 3: 'Administrador'};
     
     if (confirm(`¿Estás seguro de cambiar el rol de ${username} a ${roles[nuevoRol]}? Se cerrarán todas sus sesiones activas.`)) {
         // Crear formulario dinámico para enviar la petición
@@ -241,6 +314,78 @@ function cambiarRol(userId, username) {
         location.reload();
     }
 }
+
+function abrirModalContrasena(userId, username) {
+    userIdModal = userId;
+    document.getElementById('usuarioModal').value = username;
+    document.getElementById('nuevaContrasenaModal').value = '';
+    document.getElementById('confirmarContrasenaModal').value = '';
+    document.getElementById('modalContrasena').classList.add('is-active');
+    
+    // Focus en el campo de contraseña
+    setTimeout(() => {
+        document.getElementById('nuevaContrasenaModal').focus();
+    }, 100);
+}
+
+function cerrarModalContrasena() {
+    document.getElementById('modalContrasena').classList.remove('is-active');
+    userIdModal = null;
+}
+
+function confirmarCambioContrasena() {
+    const nuevaContrasena = document.getElementById('nuevaContrasenaModal').value;
+    const confirmarContrasena = document.getElementById('confirmarContrasenaModal').value;
+    const username = document.getElementById('usuarioModal').value;
+    
+    // Validaciones
+    if (!nuevaContrasena || nuevaContrasena.trim().length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres.');
+        document.getElementById('nuevaContrasenaModal').focus();
+        return;
+    }
+    
+    if (nuevaContrasena !== confirmarContrasena) {
+        alert('Las contraseñas no coinciden. Por favor, verifica los campos.');
+        document.getElementById('confirmarContrasenaModal').focus();
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de cambiar la contraseña de ${username}? Se cerrarán todas sus sesiones activas.`)) {
+        // Crear formulario dinámico para enviar la petición
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/users/cambiar_contrasena_admin/${userIdModal}`;
+        
+        const inputPassword = document.createElement('input');
+        inputPassword.type = 'hidden';
+        inputPassword.name = 'nueva_contrasena';
+        inputPassword.value = nuevaContrasena;
+        
+        form.appendChild(inputPassword);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        cerrarModalContrasena();
+    }
+});
+
+// Enviar formulario con Enter en los campos del modal
+document.addEventListener('DOMContentLoaded', function() {
+    const campos = ['nuevaContrasenaModal', 'confirmarContrasenaModal'];
+    campos.forEach(function(campoId) {
+        document.getElementById(campoId).addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                confirmarCambioContrasena();
+            }
+        });
+    });
+});
 </script>
 
 <style>
@@ -269,6 +414,39 @@ function cambiarRol(userId, username) {
     font-size: 0.75rem;
 }
 
+/* Estilos para el modal */
+.modal-card {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.modal-card-body .field:last-child {
+    margin-bottom: 0;
+}
+
+/* Animación suave para el modal */
+.modal {
+    transition: opacity 0.3s ease;
+}
+
+.modal.is-active {
+    opacity: 1;
+}
+
+/* Estilos para campos de contraseña */
+.input[type="password"] {
+    font-family: monospace;
+}
+
+/* Validación visual */
+.input.is-danger {
+    border-color: #ff3860;
+}
+
+.input.is-success {
+    border-color: #48c774;
+}
+
 @media screen and (max-width: 768px) {
     .buttons {
         flex-direction: column;
@@ -285,6 +463,11 @@ function cambiarRol(userId, username) {
     
     .field.has-addons .select {
         width: 100%;
+    }
+    
+    .modal-card {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
     }
 }
 </style>

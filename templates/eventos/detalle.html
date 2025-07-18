@@ -168,8 +168,50 @@
                                 Sin estado
                             </span>
                         {% endif %}
+                                        </div>
+                    
+                    <!-- Card de Hora de Inicio del Torneo -->
+                    {% if evento.torneo_empezado_en %}
+                    <div class="box">
+                        <h3 class="title is-5">
+                            <i class="fas fa-play-circle mr-2 has-text-success"></i>
+                            Torneo Iniciado
+                        </h3>
+                        <div class="content">
+                            <div class="notification is-success is-light p-4">
+                                <div class="has-text-centered">
+                                    <p class="title is-4 has-text-success mb-2">
+                                        <i class="fas fa-stopwatch mr-2"></i>
+                                        {{ evento.torneo_empezado_en.strftime('%H:%M:%S') }}
+                                    </p>
+                                    <p class="subtitle is-6 has-text-grey-dark">
+                                        {% set dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                                        {% set meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] %}
+                                        {{ dias[evento.torneo_empezado_en.weekday()] }}, {{ evento.torneo_empezado_en.day }} de {{ meses[evento.torneo_empezado_en.month - 1] }}
+                                    </p>
+                                    {% if evento.usuario_iniciado %}
+                                    <p class="is-size-7 has-text-grey">
+                                        <i class="fas fa-user mr-1"></i>
+                                        Iniciado por: <strong>{{ evento.usuario_iniciado }}</strong>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Tiempo transcurrido en tiempo real -->
+                            {% if evento.estado == 'enCurso' %}
+                            <div class="has-text-centered mt-3">
+                                <p class="is-size-7 has-text-grey mb-1">Tiempo transcurrido:</p>
+                                <p class="title is-5 has-text-info" id="tiempo-transcurrido">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span id="contador-tiempo">00:00:00</span>
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-
+                    {% endif %}
+                    
                     <!-- Acciones rápidas -->
                     <div class="box">
                         <h3 class="title is-5">
@@ -183,6 +225,47 @@
                                 </span>
                                 <span>Ver todos los eventos</span>
                             </a>
+                            
+                            <!-- Botón de inscripción personal -->
+                            {% if session.logged_in %}
+                                {% set usuario_ya_inscrito = participantes|selectattr('usuario_id', 'equalto', session.user_id)|list|length > 0 %}
+                                {% if not usuario_ya_inscrito and not evento.torneo_empezado_en %}
+                                    <button class="button is-success is-fullwidth" onclick="abrirModalInscripcion()">
+                                        <span class="icon">
+                                            <i class="fas fa-user-plus"></i>
+                                        </span>
+                                        <span>Inscribirme al Evento</span>
+                                    </button>
+                                {% elif usuario_ya_inscrito %}
+                                    <div class="notification is-success is-light p-3">
+                                        <div class="has-text-centered">
+                                            <span class="icon">
+                                                <i class="fas fa-check-circle"></i>
+                                            </span>
+                                            <span><strong>Ya estás inscrito</strong></span>
+                                        </div>
+                                    </div>
+                                {% elif evento.torneo_empezado_en %}
+                                    <div class="notification is-warning is-light p-3">
+                                        <div class="has-text-centered">
+                                            <span class="icon">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            <span><strong>Evento iniciado</strong></span>
+                                            <br>
+                                            <small>No se permiten más inscripciones</small>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('auth.login') }}" class="button is-info is-fullwidth">
+                                    <span class="icon">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                    </span>
+                                    <span>Iniciar Sesión para Inscribirte</span>
+                                </a>
+                            {% endif %}
+                            
                             {% if session.is_admin %}
                             <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary is-fullwidth">
                                 <span class="icon">
@@ -357,14 +440,15 @@
                                     <tr>
                                         <th>Código</th>
                                         <th>Nombre Participante</th>
-                                        <th>Tiempo Inicio</th>
                                         <th>Tiempo Llegada</th>
                                         <th>Tiempo Total</th>
                                         <th>Estado</th>
-                                        <th>Agregado por</th>
+                                        <th>Aprobado por</th>
                                         <th>Ver</th>
                                         {% if session.is_admin %}
                                         <th>Acciones</th>
+                                        {% else %}
+                                        <th></th>
                                         {% endif %}
 
                                     </tr>
@@ -388,19 +472,6 @@
                                                         </p>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                {% if participante.tiempo_inicio %}
-                                                    <span class="tag is-info">
-                                                        <i class="fas fa-play mr-1"></i>
-                                                        {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
-                                                    </span>
-                                                {% else %}
-                                                    <span class="tag is-dark has-text-white">
-                                                        <i class="fas fa-clock mr-1"></i>
-                                                        Pendiente
-                                                    </span>
-                                                {% endif %}
                                             </td>
                                             <td>
                                                 {% if participante.tiempo_llegada %}
@@ -478,14 +549,16 @@
                                                     </button>
                                                 </div>
                                             </td>
+                                            {% else %}
+                                            <td></td>
                                             {% endif %}
                                         </tr>
                                         {% endfor %}
                                     {% else %}
                                         <!-- Mensaje cuando no hay participantes -->
                                         <tr>
-                                            <td colspan="{% if session.is_admin %}8{% else %}7{% endif %}" class="has-text-centered">
-                                                <div class="content">
+                                            <td colspan="8" class="has-text-centered">
+                                                <div class="content mt-4">
                                                     <p>
                                                         <i class="fas fa-users fa-3x has-text-grey-light"></i>
                                                     </p>
@@ -507,7 +580,7 @@
                         </div>
 
                         <!-- Información adicional sobre participantes -->
-                        <div class="notification is-info is-light">
+                        <!-- <div class="notification is-info is-light">
                             <div class="content">
                                 <p><strong>Información sobre Participantes:</strong></p>
                                 <ul>
@@ -521,7 +594,7 @@
                                     <li>Los diferentes estados ayudan a hacer seguimiento del progreso</li>
                                 </ul>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -756,6 +829,80 @@
 </div>
 {% endif %}
 
+<!-- Modal para inscripción personal -->
+<div class="modal" id="modal-inscripcion-personal">
+    <div class="modal-background" onclick="closeModal('modal-inscripcion-personal')"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <i class="fas fa-user-plus mr-2"></i>
+                Inscribirme al Evento
+            </p>
+            <button class="delete" onclick="closeModal('modal-inscripcion-personal')"></button>
+        </header>
+        <form method="POST" action="{{ url_for('eventos.inscribirse_evento', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}">
+            <section class="modal-card-body">
+                <div class="content">
+                    <div class="notification is-info is-light">
+                        <p><strong>Estás a punto de inscribirte al evento:</strong></p>
+                        <p class="is-size-5 mt-2"><strong>{{ evento.nombre }}</strong></p>
+                        {% if evento.lugar %}
+                        <p><i class="fas fa-map-marker-alt mr-1"></i> {{ evento.lugar }}</p>
+                        {% endif %}
+                        {% if evento.fecha_inicio %}
+                        <p><i class="fas fa-calendar mr-1"></i> 
+                            {% set dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                            {% set meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] %}
+                            {{ dias[evento.fecha_inicio.weekday()] }}, {{ evento.fecha_inicio.day }} de {{ meses[evento.fecha_inicio.month - 1] }} de {{ evento.fecha_inicio.year }} a las {{ evento.fecha_inicio.strftime('%H:%M') }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Tu nombre de usuario</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" value="{{ session.usuario }}" readonly>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-user"></i>
+                            </span>
+                        </div>
+                        <p class="help">Se usará tu nombre de usuario registrado</p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Código del Participante</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="codigo" id="codigo-inscripcion" placeholder="Ej: P004" required>
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-hashtag"></i>
+                            </span>
+                        </div>
+                        <p class="help">Ingresa un código único para identificarte en el evento</p>
+                    </div>
+                    
+                    <div class="notification is-warning is-light">
+                        <p><strong>Importante:</strong></p>
+                        <ul>
+                            <li>Una vez inscrito, tu participación quedará registrada</li>
+                            <li>El código debe ser único en este evento</li>
+                            <li>Podrás ver tu progreso desde tu perfil de participante</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button type="submit" class="button is-success">
+                    <span class="icon">
+                        <i class="fas fa-check"></i>
+                    </span>
+                    <span>Confirmar Inscripción</span>
+                </button>
+                <button type="button" class="button" onclick="closeModal('modal-inscripcion-personal')">Cancelar</button>
+            </footer>
+        </form>
+    </div>
+</div>
+
 <script>
 function openModal(modalId) {
     document.getElementById(modalId).classList.add('is-active');
@@ -763,6 +910,14 @@ function openModal(modalId) {
 
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('is-active');
+}
+
+function abrirModalInscripcion() {
+    document.getElementById('modal-inscripcion-personal').classList.add('is-active');
+    // Focus en el campo de código después de un delay
+    setTimeout(() => {
+        document.getElementById('codigo-inscripcion').focus();
+    }, 100);
 }
 
 function confirmarEliminar(nombreParticipante, participanteId) {
@@ -818,6 +973,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar autocompletado de usuarios
     inicializarAutocompletadoUsuarios();
+    
+    // Inicializar contador de tiempo si el torneo ha empezado
+    {% if evento.torneo_empezado_en %}
+    inicializarContadorTiempo();
+    {% endif %}
 });
 
 // Funciones para el autocompletado de usuarios
@@ -1075,7 +1235,7 @@ function inicializarFiltrosYOrdenacion() {
             // Mostrar mensaje de no resultados
             const filaVacia = document.createElement('tr');
             filaVacia.innerHTML = `
-                <td colspan="{% if session.is_admin %}9{% else %}8{% endif %}" class="has-text-centered">
+                <td colspan="8" class="has-text-centered">
                     <div class="content">
                         <p><i class="fas fa-search fa-2x has-text-grey-light"></i></p>
                         <p class="has-text-grey">No se encontraron participantes con los filtros aplicados</p>
@@ -1096,7 +1256,7 @@ function inicializarFiltrosYOrdenacion() {
     }
     
     function extraerTiempoTotal(fila) {
-        const celdaTiempo = fila.cells[4]; // Columna de Tiempo Total
+        const celdaTiempo = fila.cells[3]; // Columna de Tiempo Total (ahora en posición 3)
         if (!celdaTiempo) return null;
         
         const tagTiempo = celdaTiempo.querySelector('.tag.is-primary strong');
@@ -1139,6 +1299,42 @@ function limpiarFiltros() {
     // Disparar evento para actualizar la tabla
     const event = new Event('input', { bubbles: true });
     document.getElementById('filtro-codigo').dispatchEvent(event);
+}
+
+// Función para inicializar el contador de tiempo transcurrido
+function inicializarContadorTiempo() {
+    {% if evento.torneo_empezado_en %}
+    const fechaInicio = new Date('{{ evento.torneo_empezado_en.strftime('%Y-%m-%dT%H:%M:%S') }}Z');
+    const contadorElemento = document.getElementById('contador-tiempo');
+    
+    if (!contadorElemento) return;
+    
+    function actualizarContador() {
+        const ahora = new Date();
+        const diferencia = Math.floor((ahora - fechaInicio) / 1000); // Diferencia en segundos
+        
+        if (diferencia < 0) {
+            contadorElemento.textContent = '00:00:00';
+            return;
+        }
+        
+        const horas = Math.floor(diferencia / 3600);
+        const minutos = Math.floor((diferencia % 3600) / 60);
+        const segundos = diferencia % 60;
+        
+        const horasStr = horas.toString().padStart(2, '0');
+        const minutosStr = minutos.toString().padStart(2, '0');
+        const segundosStr = segundos.toString().padStart(2, '0');
+        
+        contadorElemento.textContent = `${horasStr}:${minutosStr}:${segundosStr}`;
+    }
+    
+    // Actualizar inmediatamente
+    actualizarContador();
+    
+    // Actualizar cada segundo
+    setInterval(actualizarContador, 1000);
+    {% endif %}
 }
 </script>
 {% endblock %}

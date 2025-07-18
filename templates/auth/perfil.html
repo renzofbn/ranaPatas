@@ -8,17 +8,6 @@
         <div class="box">
           <h1 class="title">Mi Perfil</h1>
           
-          {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-              {% for category, message in messages %}
-                <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
-                  <button class="delete"></button>
-                  {{ message }}
-                </div>
-              {% endfor %}
-            {% endif %}
-          {% endwith %}
-          
           <div class="columns">
             <div class="column is-4">
               <figure class="image is-128x128">
@@ -46,7 +35,7 @@
                     <span class="icon">
                       <i class="fas fa-user"></i>
                     </span>
-                    <span>Participante</span>
+                    <span>Usuario</span>
                   </span>
                 {% elif rol_usuario == 2 %}
                   <span class="tag is-info is-medium">
@@ -67,7 +56,7 @@
                     <span class="icon">
                       <i class="fas fa-user"></i>
                     </span>
-                    <span>Participante</span>
+                    <span>Usuario</span>
                   </span>
                 {% endif %}
               </div>
@@ -133,16 +122,4 @@
     </div>
   </div>
 </section>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  // Añadir funcionalidad para cerrar notificaciones
-  (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
-    const $notification = $delete.parentNode;
-    $delete.addEventListener('click', () => {
-      $notification.parentNode.removeChild($notification);
-    });
-  });
-});
-</script>
 {% endblock %}

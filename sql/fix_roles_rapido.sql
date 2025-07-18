@@ -8,7 +8,7 @@ SELECT COUNT(*) as total_roles FROM roles;
 
 -- Insertar roles básicos (usar INSERT en lugar de INSERT IGNORE para ver errores)
 INSERT INTO roles (id, nombre, descripcion) VALUES
-(1, 'Participante', 'Usuario básico que puede participar en eventos'),
+(1, 'Usuario', 'Usuario básico que puede participar en eventos'),
 (2, 'Organizador', 'Usuario que puede crear y gestionar eventos'),
 (3, 'Administrador', 'Usuario con permisos completos del sistema');
 

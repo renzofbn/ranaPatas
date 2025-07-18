@@ -66,7 +66,20 @@
                   </span>
                   <span>Mis Participaciones</span>
                 </a>
+                <a class="navbar-item" href="/evaluaciones">
+                  <span class="icon">
+                    <i class="fas fa-clipboard-list"></i>
+                  </span>
+                  <span>Evaluaciones</span>
+                </a>
                 {% if session.is_admin %}
+                <!-- Tanto organizadores (rol 2) como administradores (rol 3) pueden ver todos los eventos -->
+                <a class="navbar-item" href="/eventos/todos">
+                  <span class="icon">
+                    <i class="fas fa-calendar-alt"></i>
+                  </span>
+                  <span>Todos los Eventos</span>
+                </a>
                 <hr class="navbar-divider">
                 {% if session.rol == 3 %}
                   <!-- Solo administradores completos (rol 3) -->
@@ -83,22 +96,8 @@
                     <span>Usuarios</span>
                   </a>
                 {% endif %}
-                <!-- Tanto organizadores (rol 2) como administradores (rol 3) pueden ver todos los eventos -->
-                <a class="navbar-item" href="/eventos/todos">
-                  <span class="icon">
-                    <i class="fas fa-calendar-alt"></i>
-                  </span>
-                  <span>Todos los Eventos</span>
-                </a>
                 {% endif %}
-                <hr class="navbar-divider">
                 <!-- Evaluaciones - disponible para todos los usuarios logueados -->
-                <a class="navbar-item" href="/evaluaciones">
-                  <span class="icon">
-                    <i class="fas fa-clipboard-list"></i>
-                  </span>
-                  <span>Evaluaciones</span>
-                </a>
                 <hr class="navbar-divider">
                 <a class="navbar-item" href="/auth/logout">
                   <span class="icon">
@@ -124,6 +123,20 @@
     </div>
 
   </nav>
+
+  <!-- Notificaciones globales -->
+  <div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="notification {% if category == 'error' %}is-danger{% elif category == 'warning' %}is-warning{% elif category == 'info' %}is-info{% else %}is-success{% endif %} is-light">
+            <button class="delete"></button>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
 
   {% block content %}
   {% endblock %}
@@ -162,6 +175,14 @@
           el.classList.toggle('is-active');
           $target.classList.toggle('is-active');
 
+        });
+      });
+
+      // Funcionalidad para cerrar notificaciones
+      (document.querySelectorAll('.notification .delete') || []).forEach(($delete) => {
+        const $notification = $delete.parentNode;
+        $delete.addEventListener('click', () => {
+          $notification.parentNode.removeChild($notification);
         });
       });
 

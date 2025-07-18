@@ -11,11 +11,11 @@
                 <div class="level-left">
                     <div class="level-item">
                         <div>
-                            <h1 class="title is-3">
+                            <h1 class="title is-3 mb-2">
                                 <i class="fas fa-calendar-alt mr-2"></i>
-                                Eventos de Este Mes
+                                Eventos Próximos
                             </h1>
-                            <p class="subtitle is-6">Listado de eventos del mes actual</p>
+                            <p class="subtitle is-6">Eventos del mes actual en adelante</p>
                         </div>
                     </div>
                 </div>
@@ -42,10 +42,10 @@
             </div>
 
             <!-- Estadísticas -->
-            <div class="columns mb-5">
+            <!-- <div class="columns mb-5">
                 <div class="column">
                     <div class="box has-text-centered">
-                        <p class="heading">Eventos Este Mes</p>
+                        <p class="heading">Eventos Próximos</p>
                         <p class="title is-3">{{ eventos|length }}</p>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                         <p class="title is-3">{{ eventos|rejectattr('fecha_inicio')|list|length }}</p>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Lista de eventos -->
             <div class="box">
@@ -69,13 +69,12 @@
                     <table class="table is-fullwidth is-striped is-hoverable">
                         <thead>
                             <tr>
-                                <th><abbr title="ID">ID</abbr></th>
+                                <th><abbr title="Orden">#</abbr></th>
                                 <th>Nombre del Evento</th>
                                 <th>Lugar</th>
                                 <th>Fecha de Inicio</th>
                                 <th>Estado</th>
                                 <th>Creado por</th>
-                                <th>Fecha Creación</th>
                                 <th>Ver</th>
                                 {% if session.is_admin %}
                                 <th>Acciones</th>
@@ -85,7 +84,7 @@
                         <tbody>
                             {% for evento in eventos %}
                             <tr>
-                                <td>{{ evento.id }}</td>
+                                <td><strong>{{ loop.index }}</strong></td>
                                 <td>
                                     <div class="media">
                                         <div class="media-left">
@@ -96,7 +95,7 @@
                                             </figure>
                                         </div>
                                         <div class="media-content">
-                                            <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" class="has-text-dark">
+                                            <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" class="has-text">
                                                 <strong>{{ evento.nombre }}</strong>
                                             </a>
                                             {% if evento.observaciones %}
@@ -168,9 +167,6 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <small class="has-text-grey">{{ evento.fecha_creacion.strftime('%d/%m/%Y') if evento.fecha_creacion else 'N/A' }}</small>
-                                </td>
-                                <td>
                                     <div class="buttons">
                                     <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" class="button is-small is-primary">
                                         <span class="icon is-small">
@@ -203,12 +199,12 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="{% if session.is_admin %}9{% else %}8{% endif %}" class="has-text-centered">
+                                <td colspan="{% if session.is_admin %}8{% else %}7{% endif %}" class="has-text-centered">
                                     <div class="content">
                                         <p>
                                             <i class="fas fa-calendar-times fa-3x has-text-grey-light"></i>
                                         </p>
-                                        <p class="has-text-grey">No hay eventos registrados para este mes</p>
+                                        <p class="has-text-grey">No hay eventos próximos registrados</p>
                                         {% if session.is_admin %}
                                         <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary mt-3">
                                             <span class="icon">
@@ -231,14 +227,13 @@
                 <div class="content">
                     <p><strong>Información sobre Eventos:</strong></p>
                     <ul>
-                        <li>Se muestran solo los eventos del mes actual</li>
+                        <li>Se muestran eventos del mes actual en adelante (excluyendo cancelados)</li>
                         {% if session.is_admin %}
-                        <li>Como administrador, puedes crear, editar y eliminar eventos</li>
                         <li>Los eventos se muestran ordenados por fecha de inicio</li>
                         {% else %}
                         <li>Solo los administradores pueden gestionar eventos</li>
                         {% endif %}
-                        <li>Los eventos próximos se destacan con colores diferentes</li>
+                        <li>Los eventos próximos se destacan con colores diferentes según su estado</li>
                     </ul>
                 </div>
             </div>

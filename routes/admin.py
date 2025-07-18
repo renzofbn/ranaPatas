@@ -44,6 +44,9 @@ def dashboard():
         cur.execute("SELECT COUNT(*) FROM eventos")
         total_eventos = cur.fetchone()[0]
         
+        cur.execute("SELECT COUNT(*) FROM evaluaciones")
+        total_evaluaciones = cur.fetchone()[0]
+        
         cur.execute("SELECT COUNT(*) FROM notificaciones_admin WHERE leida = 0")
         notificaciones_pendientes = cur.fetchone()[0]
         
@@ -64,6 +67,7 @@ def dashboard():
             'usuarios_aprobados': usuarios_aprobados,
             'usuarios_rechazados': usuarios_rechazados,
             'total_eventos': total_eventos,
+            'total_evaluaciones': total_evaluaciones,
             'notificaciones_pendientes': notificaciones_pendientes,
             'participantes': participantes,
             'organizadores': organizadores,
@@ -152,7 +156,7 @@ def aprobar_usuario(user_id):
         cur.close()
         
         # Mensaje personalizado según el rol
-        roles_nombres = {1: 'Participante', 2: 'Organizador', 3: 'Administrador'}
+        roles_nombres = {1: 'Usuario', 2: 'Organizador', 3: 'Administrador'}
         rol_nombre = roles_nombres.get(rol, 'Usuario')
         
         flash(f'Usuario {usuario_info[0]} aprobado exitosamente como {rol_nombre}', 'success')

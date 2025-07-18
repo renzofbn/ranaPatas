@@ -526,7 +526,7 @@ def detalle_participante(evaluacion_id, participante_id):
         
         participante = cur.fetchone()
         if not participante:
-            flash('Participante no encontrado en esta evaluación', 'error')
+            flash('Usuario no encontrado en esta evaluación', 'error')
             return redirect(url_for('evaluaciones.detalle', evaluacion_id=evaluacion_id))
         
         cur.close()
@@ -600,7 +600,7 @@ def eliminar_participante(evaluacion_id, participante_id):
         
         participante = cur.fetchone()
         if not participante:
-            flash('Participante no encontrado', 'error')
+            flash('Usuario no encontrado', 'error')
             return redirect(url_for('evaluaciones.detalle', evaluacion_id=evaluacion_id))
         
         # Eliminar el participante
@@ -612,7 +612,7 @@ def eliminar_participante(evaluacion_id, participante_id):
         mysql.connection.commit()
         cur.close()
         
-        flash(f'Participante {participante[1]} eliminado de la evaluación {participante[2]}', 'success')
+        flash(f'Usuario {participante[1]} eliminado de la evaluación {participante[2]}', 'success')
         
     except Exception as e:
         flash(f'Error al eliminar participante: {str(e)}', 'error')
@@ -641,7 +641,7 @@ def cronometro_participante(evaluacion_id, participante_id):
         
         participante = cur.fetchone()
         if not participante:
-            return jsonify({'success': False, 'error': 'Participante no encontrado'})
+            return jsonify({'success': False, 'error': 'Usuario no encontrado'})
         
         participante_id_db, estado_actual, tiempo_inicio, tiempo_final = participante
         
@@ -718,7 +718,7 @@ def editar_observaciones(evaluacion_id, participante_id):
         
         participante = cur.fetchone()
         if not participante:
-            return jsonify({'success': False, 'error': 'Participante no encontrado en esta evaluación'})
+            return jsonify({'success': False, 'error': 'Usuario no encontrado en esta evaluación'})
         
         # Actualizar las observaciones
         cur.execute("""

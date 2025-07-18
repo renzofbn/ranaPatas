@@ -198,7 +198,7 @@ def cambiar_rol(user_id):
         session_invalidated = invalidate_current_session_if_needed(user_id)
         
         # Mensaje personalizado según el rol
-        roles_nombres = {1: 'Participante', 2: 'Organizador', 3: 'Administrador'}
+        roles_nombres = {1: 'Usuario', 2: 'Organizador', 3: 'Administrador'}
         rol_nombre = roles_nombres.get(nuevo_rol, 'Usuario')
         
         if session_invalidated:
@@ -214,3 +214,53 @@ def cambiar_rol(user_id):
     except Exception as e:
         flash(f'Error al cambiar el rol: {str(e)}', 'error')
         return redirect(url_for('users.index'))
+
+@users_bp.route('/cambiar_contrasena_admin/<int:user_id>', methods=['POST'])
+@require_admin()
+def cambiar_contrasena_admin(user_id):
+    """Cambiar la contraseña de un usuario (solo administradores)"""
+    try:
+        from utils import hash_password, validate_password
+        
+        current_user = get_current_user()
+        nueva_contrasena = request.form.get('nueva_contrasena')
+        
+        # Validar la nueva contraseña
+        valid_password, password_msg = validate_password(nueva_contrasena)
+        if not valid_password:
+            flash(f'Error en la contraseña: {password_msg}', 'error')
+            return redirect(url_for('users.index'))
+        
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Obtener información del usuario
+        cur.execute("SELECT usuario FROM usuarios WHERE id = %s", (user_id,))
+        usuario_info = cur.fetchone()
+        
+        if not usuario_info:
+            flash('Usuario no encontrado', 'error')
+            return redirect(url_for('users.index'))
+        
+        # Hashear la nueva contraseña
+        contrasena_hasheada = hash_password(nueva_contrasena)
+        
+        # Actualizar la contraseña
+        cur.execute("""
+            UPDATE usuarios 
+            SET contrasena = %s 
+            WHERE id = %s
+        """, (contrasena_hasheada, user_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        # Invalidar todas las sesiones del usuario
+        invalidate_all_user_sessions(user_id, 'cambio_contrasena_admin', current_user['id'])
+        
+        flash(f'Contraseña de {usuario_info[0]} cambiada correctamente. Se han cerrado todas sus sesiones.', 'success')
+        
+    except Exception as e:
+        flash(f'Error al cambiar la contraseña: {str(e)}', 'error')
+    
+    return redirect(url_for('users.index'))

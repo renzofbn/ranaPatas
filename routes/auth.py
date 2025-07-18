@@ -191,7 +191,7 @@ def register():
             # Hash de la contraseña
             hashed_password = hash_password(contrasena)
             
-            # Insertar nuevo usuario con estado pendiente y rol por defecto (Participante)
+            # Insertar nuevo usuario con estado pendiente y rol por defecto (Usuario)
             cur.execute("""INSERT INTO usuarios (nombre, usuario, correo, contrasena, estado_aprobacion, rol) 
                            VALUES (%s, %s, %s, %s, 'pendiente', 1)""", 
                        (nombre.strip(), usuario, correo, hashed_password))

@@ -234,7 +234,7 @@ CREATE TABLE `usuarios` (
   `fecha_aprobacion` datetime DEFAULT NULL,
   `aprobado_por` int DEFAULT NULL,
   `observaciones_admin` text,
-  `rol` int DEFAULT '1' COMMENT '1=Participante, 2=Organizador, 3=Admin',
+  `rol` int DEFAULT '1' COMMENT '1=Usuario, 2=Organizador, 3=Admin',
   PRIMARY KEY (`id`),
   UNIQUE KEY `usuario` (`usuario`),
   UNIQUE KEY `correo` (`correo`),

@@ -9,20 +9,16 @@ eventos_bp = Blueprint('eventos', __name__, url_prefix='/eventos')
 
 @eventos_bp.route('/')
 def index():
-    """Listar eventos del mes actual"""
+    """Listar eventos del mes actual en adelante (excluyendo cancelados)"""
     try:
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
-        # Obtener fechas del mes actual
+        # Obtener fecha del primer día del mes actual
         now = datetime.now()
         first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if now.month == 12:
-            first_day_of_next_month = first_day_of_month.replace(year=now.year + 1, month=1)
-        else:
-            first_day_of_next_month = first_day_of_month.replace(month=now.month + 1)
         
-        # Obtener eventos del mes actual con información del usuario creador
+        # Obtener eventos del mes actual en adelante, excluyendo cancelados
         cur.execute("""
             SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
                    e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
@@ -31,9 +27,10 @@ def index():
             FROM eventos e
             LEFT JOIN usuarios u ON e.id_usuario_creado = u.id
             LEFT JOIN usuarios u_iniciado ON e.torneo_iniciado_por = u_iniciado.id
-            WHERE e.fecha_inicio >= %s AND e.fecha_inicio < %s
+            WHERE e.fecha_inicio >= %s 
+                AND (e.estado IS NULL OR e.estado != 'cancelado')
             ORDER BY e.fecha_inicio ASC, e.fecha_creacion DESC
-        """, (first_day_of_month, first_day_of_next_month))
+        """, (first_day_of_month,))
         
         eventos_raw = cur.fetchall()
         cur.close()
@@ -516,7 +513,7 @@ def agregar_participante(nombre_evento):
         mysql.connection.commit()
         cur.close()
         
-        flash(f'Participante "{nombre}" agregado exitosamente', 'success')
+        flash(f'Usuario "{nombre}" agregado exitosamente', 'success')
         
     except Exception as e:
         flash(f'Error al agregar participante: {str(e)}', 'error')
@@ -539,7 +536,7 @@ def eliminar_participante(nombre_evento, participante_id):
         
         participante = cur.fetchone()
         if not participante:
-            flash('Participante no encontrado', 'error')
+            flash('Usuario no encontrado', 'error')
             cur.close()
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
@@ -554,10 +551,104 @@ def eliminar_participante(nombre_evento, participante_id):
         mysql.connection.commit()
         cur.close()
         
-        flash(f'Participante "{nombre_participante}" eliminado correctamente', 'success')
+        flash(f'Usuario "{nombre_participante}" eliminado correctamente', 'success')
         
     except Exception as e:
         flash(f'Error al eliminar participante: {str(e)}', 'error')
+    
+    return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+
+@eventos_bp.route('/<string:nombre_evento>/inscribirse', methods=['POST'])
+@require_login()
+def inscribirse_evento(nombre_evento):
+    """Permitir que un usuario se inscriba a sí mismo en un evento"""
+    try:
+        codigo = request.form.get('codigo', '').strip()
+        
+        if not codigo:
+            flash('El código es requerido', 'error')
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        # Obtener información del usuario actual
+        usuario_actual = get_current_user()
+        if not usuario_actual:
+            flash('Debes iniciar sesión para inscribirte', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Extraer el ID del slug (formato: ID-nombre)
+        evento_id = None
+        if '-' in nombre_evento:
+            partes = nombre_evento.split('-', 1)
+            try:
+                evento_id = int(partes[0])
+            except ValueError:
+                pass
+        
+        if evento_id:
+            # Buscar evento por ID específico
+            cur.execute("SELECT id, nombre, torneo_empezado_en FROM eventos WHERE id = %s", (evento_id,))
+        else:
+            # Método fallback: buscar por nombre
+            nombre_busqueda = nombre_evento.replace('-', ' ')
+            cur.execute("""
+                SELECT id, nombre, torneo_empezado_en FROM eventos 
+                WHERE LOWER(nombre) LIKE LOWER(%s)
+                ORDER BY id DESC LIMIT 1
+            """, (f'%{nombre_busqueda}%',))
+        
+        evento = cur.fetchone()
+        if not evento:
+            flash('Evento no encontrado', 'error')
+            cur.close()
+            return redirect(url_for('eventos.index'))
+        
+        evento_id, evento_nombre, torneo_empezado = evento
+        
+        # Verificar si el evento ya ha iniciado
+        if torneo_empezado:
+            flash('No puedes inscribirte porque el evento ya ha iniciado', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Verificar que el código no exista ya en este evento
+        cur.execute("""
+            SELECT id FROM participantes_evento 
+            WHERE evento_id = %s AND codigo = %s
+        """, (evento_id, codigo))
+        
+        if cur.fetchone():
+            flash(f'Ya existe un participante con el código "{codigo}" en este evento', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Verificar que el usuario no esté ya participando en este evento
+        cur.execute("""
+            SELECT id FROM participantes_evento 
+            WHERE evento_id = %s AND usuario_id = %s
+        """, (evento_id, usuario_actual['id']))
+        
+        if cur.fetchone():
+            flash('Ya estás inscrito en este evento', 'warning')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Insertar el nuevo participante
+        cur.execute("""
+            INSERT INTO participantes_evento 
+            (codigo, nombre, usuario_id, participante_agregado_por, evento_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (codigo, usuario_actual['nombre'], usuario_actual['id'], usuario_actual['id'], evento_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        flash(f'¡Te has inscrito exitosamente al evento "{evento_nombre}" con el código "{codigo}"!', 'success')
+        
+    except Exception as e:
+        flash(f'Error al inscribirse al evento: {str(e)}', 'error')
     
     return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
 
@@ -768,7 +859,7 @@ def iniciar_cronometro(nombre_evento, codigo_participante):
         
         if not participante:
             cur.close()
-            return {'success': False, 'error': 'Participante no encontrado'}, 404
+            return {'success': False, 'error': 'Usuario no encontrado'}, 404
         
         participante_id = participante[0]
         tiempo_inicio_actual = participante[1]
@@ -849,7 +940,7 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
         
         if not participante:
             cur.close()
-            return {'success': False, 'error': 'Participante no encontrado'}, 404
+            return {'success': False, 'error': 'Usuario no encontrado'}, 404
         
         participante_id = participante[0]
         tiempo_inicio = participante[1]
@@ -966,7 +1057,7 @@ def actualizar_detalles_participante(nombre_evento, codigo_participante):
         
         if not participante:
             cur.close()
-            return {'success': False, 'error': 'Participante no encontrado'}, 404
+            return {'success': False, 'error': 'Usuario no encontrado'}, 404
         
         participante_id = participante[0]
         

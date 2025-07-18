@@ -228,14 +228,18 @@
                                     <p class="heading">Tiempo de Inicio</p>
                                     <p class="title is-4 has-text-white">
                                         {% if participante.tiempo_inicio %}
-                                            {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
+                                            <span class="fecha-local-hora" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                                {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
+                                            </span>
                                         {% else %}
                                             <span class="has-text-grey">-</span>
                                         {% endif %}
                                     </p>
                                     <p class="subtitle is-6 has-text-white">
                                         {% if participante.tiempo_inicio %}
-                                            {{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}
+                                            <span class="fecha-local-fecha" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                                {{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}
+                                            </span>
                                         {% else %}
                                             No iniciado
                                         {% endif %}
@@ -247,14 +251,18 @@
                                     <p class="heading">Tiempo Final</p>
                                     <p class="title is-4 has-text-white">
                                         {% if participante.tiempo_final %}
-                                            {{ participante.tiempo_final.strftime('%H:%M:%S') }}
+                                            <span class="fecha-local-hora" data-fecha-utc="{{ participante.tiempo_final.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                                {{ participante.tiempo_final.strftime('%H:%M:%S') }}
+                                            </span>
                                         {% else %}
                                             <span class="has-text-grey">-</span>
                                         {% endif %}
                                     </p>
                                     <p class="subtitle is-6 has-text-white">
                                         {% if participante.tiempo_final %}
-                                            {{ participante.tiempo_final.strftime('%d/%m/%Y') }}
+                                            <span class="fecha-local-fecha" data-fecha-utc="{{ participante.tiempo_final.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                                {{ participante.tiempo_final.strftime('%d/%m/%Y') }}
+                                            </span>
                                         {% else %}
                                             No terminado
                                         {% endif %}
@@ -294,7 +302,13 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker is-primary"></div>
                                 <div class="timeline-content">
-                                    <p class="heading">{{ participante.fecha_agregacion.strftime('%d/%m/%Y %H:%M') if participante.fecha_agregacion else '-' }}</p>
+                                    <p class="heading" data-fecha-utc="{{ participante.fecha_agregacion.strftime('%Y-%m-%dT%H:%M:%S') if participante.fecha_agregacion else '' }}Z">
+                                        {% if participante.fecha_agregacion %}
+                                        <span class="fecha-local">{{ participante.fecha_agregacion.strftime('%d/%m/%Y %H:%M') }}</span>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </p>
                                     <p><strong>Agregado a la evaluación</strong> por {{ participante.agregado_por_usuario }}</p>
                                 </div>
                             </div>
@@ -303,7 +317,9 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker is-success"></div>
                                 <div class="timeline-content">
-                                    <p class="heading">{{ participante.tiempo_inicio.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+                                    <p class="heading" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                        <span class="fecha-local">{{ participante.tiempo_inicio.strftime('%d/%m/%Y %H:%M:%S') }}</span>
+                                    </p>
                                     <p><strong>Cronómetro iniciado</strong>
                                         {% if participante.iniciado_por_usuario %}
                                         por {{ participante.iniciado_por_usuario }}
@@ -317,7 +333,9 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker is-danger"></div>
                                 <div class="timeline-content">
-                                    <p class="heading">{{ participante.tiempo_final.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+                                    <p class="heading" data-fecha-utc="{{ participante.tiempo_final.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                        <span class="fecha-local">{{ participante.tiempo_final.strftime('%d/%m/%Y %H:%M:%S') }}</span>
+                                    </p>
                                     <p><strong>Cronómetro terminado</strong>
                                         {% if participante.terminado_por_usuario %}
                                         por {{ participante.terminado_por_usuario }}
@@ -390,6 +408,9 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if current_estado == 'en_progreso' and participante.tiempo_inicio %}
     iniciarCronometroVivo();
     {% endif %}
+    
+    // Convertir todas las fechas UTC a zona horaria local
+    convertirFechasALocal();
 });
 
 let intervaloCronometro = null;
@@ -413,6 +434,60 @@ function iniciarCronometroVivo() {
             `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
     }, 1000);
     {% endif %}
+}
+
+function convertirFechasALocal() {
+    // Convertir fechas del timeline
+    const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+    
+    elementosFecha.forEach(elemento => {
+        const fechaUTC = elemento.getAttribute('data-fecha-utc');
+        if (fechaUTC && fechaUTC !== 'Z') {
+            try {
+                // Crear fecha UTC
+                const fechaObj = new Date(fechaUTC);
+                
+                // Para elementos del timeline
+                const spanFecha = elemento.querySelector('.fecha-local');
+                if (spanFecha) {
+                    // Convertir a zona horaria local para timeline (con formato completo)
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: fechaUTC.includes(':') && fechaUTC.split(':').length > 2 ? '2-digit' : undefined,
+                        hour12: false
+                    });
+                    spanFecha.textContent = fechaLocal.replace(',', '');
+                }
+                
+                // Para elementos de hora (título)
+                if (elemento.classList.contains('fecha-local-hora')) {
+                    const horaLocal = fechaObj.toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = horaLocal;
+                }
+                
+                // Para elementos de fecha (subtítulo)
+                if (elemento.classList.contains('fecha-local-fecha')) {
+                    const fechaLocal = fechaObj.toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    elemento.textContent = fechaLocal;
+                }
+            } catch (error) {
+                console.error('Error al convertir fecha:', fechaUTC, error);
+            }
+        }
+    });
 }
 
 function detenerCronometroVivo() {

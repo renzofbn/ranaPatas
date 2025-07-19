@@ -79,10 +79,10 @@
                                     {% if participante.tiempo_inicio %}
                                         <p class="title is-4 has-text-white">
                                             <i class="fas fa-play mr-2"></i>
-                                            {{ participante.tiempo_inicio.strftime('%H:%M:%S') }}
+                                            <span class="fecha-local-hora" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.tiempo_inicio.strftime('%H:%M:%S') }}</span>
                                         </p>
                                         <p class="subtitle is-6 has-text-white-ter">
-                                            {{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}
+                                            <span class="fecha-local-fecha" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.tiempo_inicio.strftime('%d/%m/%Y') }}</span>
                                         </p>
                                     {% else %}
                                         <p class="title is-4 has-text-grey">
@@ -99,10 +99,10 @@
                                     {% if participante.tiempo_llegada %}
                                         <p class="title is-4 has-text-white">
                                             <i class="fas fa-flag-checkered mr-2"></i>
-                                            {{ participante.tiempo_llegada.strftime('%H:%M:%S') }}
+                                            <span class="fecha-local-hora" data-fecha-utc="{{ participante.tiempo_llegada.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.tiempo_llegada.strftime('%H:%M:%S') }}</span>
                                         </p>
                                         <p class="subtitle is-6 has-text-white-ter">
-                                            {{ participante.tiempo_llegada.strftime('%d/%m/%Y') }}
+                                            <span class="fecha-local-fecha" data-fecha-utc="{{ participante.tiempo_llegada.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.tiempo_llegada.strftime('%d/%m/%Y') }}</span>
                                         </p>
                                     {% else %}
                                         <p class="title is-4 has-text-grey">
@@ -143,7 +143,7 @@
                                             FINALIZADO
                                         </span>
                                         <span class="tag is-large is-dark">
-                                            {{ participante.tiempo_llegada.strftime('%d/%m/%Y a las %H:%M:%S') }}
+                                            <span class="fecha-local-completa" data-fecha-utc="{{ participante.tiempo_llegada.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.tiempo_llegada.strftime('%d/%m/%Y a las %H:%M:%S') }}</span>
                                         </span>
                                     </div>
                                 </div>
@@ -239,7 +239,7 @@
                                                 <p class="title is-6">{{ participante.agregado_por or 'N/A' }}</p>
                                                 <p class="subtitle is-7 has-text-grey">
                                                     {% if participante.usuario_agregado_en %}
-                                                        {{ participante.usuario_agregado_en.strftime('%d/%m/%Y a las %H:%M') }}
+                                                        <span class="fecha-local-agregado" data-fecha-utc="{{ participante.usuario_agregado_en.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ participante.usuario_agregado_en.strftime('%d/%m/%Y a las %H:%M') }}</span>
                                                     {% else %}
                                                         Fecha no disponible
                                                     {% endif %}
@@ -389,7 +389,7 @@
                             {% if evento.fecha_inicio %}
                             <p class="has-text-grey">
                                 <i class="fas fa-clock mr-1"></i>
-                                {{ evento.fecha_inicio.strftime('%d/%m/%Y a las %H:%M') }}
+                                <span class="fecha-local-evento" data-fecha-utc="{{ evento.fecha_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ evento.fecha_inicio.strftime('%d/%m/%Y a las %H:%M') }}</span>
                             </p>
                             {% endif %}
                         </div>
@@ -589,6 +589,9 @@ const btnFinalizar = document.getElementById('btn-finalizar');
 
 // Inicializar cronómetro al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
+    // Convertir fechas UTC a zona horaria local
+    convertirFechasALocal();
+    
     // Solo inicializar cronómetro si no hay tiempo total registrado
     {% if not participante.tiempo_total_str %}
     // Verificar si ya hay un tiempo de inicio en el backend
@@ -918,6 +921,80 @@ function guardarDetalles() {
         // Restaurar botón
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = '<span class="icon"><i class="fas fa-save"></i></span><span>Guardar Detalles</span>';
+    });
+}
+
+// Función para convertir fechas UTC a zona horaria local
+function convertirFechasALocal() {
+    const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+    
+    elementosFecha.forEach(elemento => {
+        const fechaUTC = elemento.getAttribute('data-fecha-utc');
+        if (fechaUTC && fechaUTC !== 'Z') {
+            try {
+                // Crear fecha UTC
+                const fechaObj = new Date(fechaUTC);
+                
+                // Para fechas de agregado del participante
+                if (elemento.classList.contains('fecha-local-agregado')) {
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = fechaLocal.replace(',', ' a las');
+                }
+                // Para horas de inicio/llegada 
+                else if (elemento.classList.contains('fecha-local-hora')) {
+                    const horaLocal = fechaObj.toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = horaLocal;
+                }
+                // Para fechas de inicio/llegada
+                else if (elemento.classList.contains('fecha-local-fecha')) {
+                    const fechaLocal = fechaObj.toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    elemento.textContent = fechaLocal;
+                }
+                // Para fechas completas (tiempo final)
+                else if (elemento.classList.contains('fecha-local-completa')) {
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = fechaLocal.replace(',', ' a las');
+                }
+                // Para fechas de eventos
+                else if (elemento.classList.contains('fecha-local-evento')) {
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = fechaLocal.replace(',', ' a las');
+                }
+            } catch (error) {
+                console.error('Error al convertir fecha:', fechaUTC, error);
+            }
+        }
     });
 }
 </script>

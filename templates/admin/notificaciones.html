@@ -58,7 +58,7 @@
                       </p>
                     {% endif %}
                     <p class="is-size-7 has-text-grey">
-                      {{ notif[4].strftime('%d/%m/%Y %H:%M') }}
+                      <span class="fecha-local-notificacion" data-fecha-utc="{{ notif[4].strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ notif[4].strftime('%d/%m/%Y %H:%M') }}</span>
                     </p>
                   </div>
                 </div>
@@ -104,6 +104,41 @@
 </section>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Convertir fechas UTC a zona horaria local
+  convertirFechasALocal();
+});
+
+// Función para convertir fechas UTC a zona horaria local
+function convertirFechasALocal() {
+  const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+  
+  elementosFecha.forEach(elemento => {
+    const fechaUTC = elemento.getAttribute('data-fecha-utc');
+    if (fechaUTC && fechaUTC !== 'Z') {
+      try {
+        // Crear fecha UTC
+        const fechaObj = new Date(fechaUTC);
+        
+        // Para fechas de notificaciones con hora
+        if (elemento.classList.contains('fecha-local-notificacion')) {
+          const fechaLocal = fechaObj.toLocaleString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          elemento.textContent = fechaLocal.replace(',', '');
+        }
+      } catch (error) {
+        console.error('Error al convertir fecha:', fechaUTC, error);
+      }
+    }
+  });
+}
+
 function marcarLeida(notifId) {
   fetch(`/admin/marcar_notificacion_leida/${notifId}`, {
     method: 'POST',

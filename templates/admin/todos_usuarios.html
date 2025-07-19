@@ -165,7 +165,7 @@
                 </td>
               <td>
                 {% if usuario[5] %}
-                  <span class="tag is-dark">
+                  <span class="tag is-dark fecha-local-registro" data-fecha-utc="{{ usuario[5].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                   <span class="icon">
                     <i class="fas fa-calendar-plus"></i>
                   </span>
@@ -182,7 +182,7 @@
               </td>
                 <td>
                 {% if usuario[6] %}
-                  <span class="tag is-primary is-light">
+                  <span class="tag is-primary is-light fecha-local-procesado" data-fecha-utc="{{ usuario[6].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                   <span class="icon">
                     <i class="fas fa-clock"></i>
                   </span>
@@ -279,6 +279,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Convertir fechas UTC a zona horaria local
+  convertirFechasALocal();
+  
   const filtroEstado = document.getElementById('filtro-estado');
   const filtroRol = document.getElementById('filtro-rol');
   const buscarUsuario = document.getElementById('buscar-usuario');
@@ -343,6 +346,54 @@ function verObservaciones(usuario, observaciones) {
 
 function cerrarModal() {
   document.getElementById('modal-observaciones').classList.remove('is-active');
+}
+
+// Función para convertir fechas UTC a zona horaria local
+function convertirFechasALocal() {
+  const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+  
+  elementosFecha.forEach(elemento => {
+    const fechaUTC = elemento.getAttribute('data-fecha-utc');
+    if (fechaUTC && fechaUTC !== 'Z') {
+      try {
+        // Crear fecha UTC
+        const fechaObj = new Date(fechaUTC);
+        
+        // Para fechas de registro
+        if (elemento.classList.contains('fecha-local-registro')) {
+          const fechaLocal = fechaObj.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+          
+          // Mantener el icono y actualizar solo el texto de la fecha
+          const icono = elemento.querySelector('i');
+          const spanTexto = elemento.querySelector('span:last-child');
+          if (spanTexto) {
+            spanTexto.textContent = fechaLocal;
+          }
+        }
+        // Para fechas de procesado
+        else if (elemento.classList.contains('fecha-local-procesado')) {
+          const fechaLocal = fechaObj.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+          
+          // Mantener el icono y actualizar solo el texto de la fecha
+          const icono = elemento.querySelector('i');
+          const spanTexto = elemento.querySelector('span:last-child');
+          if (spanTexto) {
+            spanTexto.textContent = fechaLocal;
+          }
+        }
+      } catch (error) {
+        console.error('Error al convertir fecha:', fechaUTC, error);
+      }
+    }
+  });
 }
 
 // Cerrar modal al hacer clic en el fondo

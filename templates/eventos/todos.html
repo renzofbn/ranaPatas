@@ -26,7 +26,7 @@
                                 <span class="icon">
                                     <i class="fas fa-calendar-week"></i>
                                 </span>
-                                <span>Eventos Este Mes</span>
+                                <span>Eventos Este Mes en adelante</span>
                             </a>
                             <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary">
                                 <span class="icon">
@@ -73,7 +73,7 @@
                                 <th>Fecha de Inicio</th>
                                 <th>Estado</th>
                                 <th>Creado por</th>
-                                <th>Fecha Creación</th>
+                                <!-- <th>Fecha Creación</th> -->
                                 <th>Ver</th>
                                 <th>Acciones</th>
                             </tr>
@@ -163,9 +163,9 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <!-- <td>
                                     <small class="has-text-grey">{{ evento.fecha_creacion.strftime('%d/%m/%Y') if evento.fecha_creacion else 'N/A' }}</small>
-                                </td>
+                                </td> -->
                                 <td>
                                     <div class="buttons">
                                     <a href="{{ url_for('eventos.detalle', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" class="button is-small is-primary">

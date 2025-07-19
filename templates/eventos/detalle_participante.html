@@ -31,7 +31,7 @@
                                     <h1 class="title is-2">
                                         <strong>{{ participante.codigo }}</strong> - {{ participante.nombre }}
                                     </h1>
-                                    <p class="subtitle is-5 has-text-grey">
+                                    <p class="subtitle is-5 has-text-grey mt-4">
                                         <i class="fas fa-calendar-alt mr-1"></i>
                                         Participante en <strong>{{ evento.nombre }}</strong>
                                     </p>
@@ -596,7 +596,8 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if not participante.tiempo_total_str %}
     // Verificar si ya hay un tiempo de inicio en el backend
     {% if participante.tiempo_inicio %}
-    const tiempoInicioBD = new Date('{{ participante.tiempo_inicio.isoformat() }}');
+    // Crear fecha UTC del backend y convertir a timestamp local
+    const tiempoInicioBD = new Date('{{ participante.tiempo_inicio.isoformat() }}Z');
     tiempoInicial = tiempoInicioBD.getTime();
     cronometroActivo = true;
     

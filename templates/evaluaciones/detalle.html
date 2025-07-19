@@ -195,7 +195,7 @@
                                 </td>
                                 <td>
                                     {% if participante.tiempo_inicio %}
-                                        <span class="tag is-success">
+                                        <span class="tag is-success fecha-local-completa" data-fecha-utc="{{ participante.tiempo_inicio.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                                             <i class="fas fa-play mr-1"></i>
                                             {{ participante.tiempo_inicio.strftime('%d/%m/%Y %H:%M:%S') }}
                                         </span>
@@ -205,7 +205,7 @@
                                 </td>
                                 <td>
                                     {% if participante.tiempo_final %}
-                                        <span class="tag is-danger">
+                                        <span class="tag is-danger fecha-local-completa" data-fecha-utc="{{ participante.tiempo_final.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                                             <i class="fas fa-stop mr-1"></i>
                                             {{ participante.tiempo_final.strftime('%d/%m/%Y %H:%M:%S') }}
                                         </span>
@@ -360,6 +360,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Configurar autocompletado para usuarios
     configurarAutocompletado();
+    
+    // Convertir fechas UTC a zona horaria local
+    convertirFechasALocal();
 });
 
 let timeoutBusqueda = null;
@@ -452,6 +455,44 @@ function seleccionarUsuario(usuario) {
     inputUsuario.value = usuario.display;
     usuarioSeleccionadoId.value = usuario.id;
     dropdown.classList.remove('is-active');
+}
+
+function convertirFechasALocal() {
+    // Convertir fechas en la tabla de participantes
+    const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+    
+    elementosFecha.forEach(elemento => {
+        const fechaUTC = elemento.getAttribute('data-fecha-utc');
+        if (fechaUTC && fechaUTC !== 'Z') {
+            try {
+                // Crear fecha UTC
+                const fechaObj = new Date(fechaUTC);
+                
+                // Para elementos de fecha completa en tabla
+                if (elemento.classList.contains('fecha-local-completa')) {
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    
+                    // Mantener el icono y actualizar solo el texto
+                    const icono = elemento.querySelector('i');
+                    if (icono) {
+                        elemento.innerHTML = icono.outerHTML + ' ' + fechaLocal.replace(',', '');
+                    } else {
+                        elemento.textContent = fechaLocal.replace(',', '');
+                    }
+                }
+            } catch (error) {
+                console.error('Error al convertir fecha:', fechaUTC, error);
+            }
+        }
+    });
 }
 
 function abrirModalAgregarParticipante() {

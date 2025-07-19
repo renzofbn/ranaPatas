@@ -7,10 +7,9 @@ from datetime import datetime, timezone, timedelta
 # Crear el blueprint para evaluaciones
 evaluaciones_bp = Blueprint('evaluaciones', __name__, url_prefix='/evaluaciones')
 
-def get_gmt_minus_5_time():
-    """Obtener la hora actual en GMT-5"""
-    gmt_minus_5 = timezone(timedelta(hours=-5))
-    return datetime.now(gmt_minus_5)
+def get_utc_time():
+    """Obtener la hora actual en UTC"""
+    return datetime.now(timezone.utc)
 
 def require_admin_evaluaciones():
     """Decorador para requerir permisos de administrador para crear/editar/eliminar evaluaciones (rol 2 o 3)"""
@@ -650,25 +649,25 @@ def cronometro_participante(evaluacion_id, participante_id):
             if estado_actual != 'pendiente':
                 return jsonify({'success': False, 'error': 'Solo se puede iniciar un cronómetro en estado pendiente'})
             
-            # Iniciar cronómetro usando la hora GMT-5
-            tiempo_servidor = get_gmt_minus_5_time()
+            # Iniciar cronómetro usando UTC
+            tiempo_utc = get_utc_time()
             cur.execute("""
                 UPDATE participante_evaluacion 
                 SET tiempo_inicio = %s, estado = 'en_progreso', iniciado_por = %s
                 WHERE id = %s
-            """, (tiempo_servidor, current_user['id'], participante_id))
+            """, (tiempo_utc, current_user['id'], participante_id))
             
         elif accion == 'terminar':
             if estado_actual != 'en_progreso':
                 return jsonify({'success': False, 'error': 'Solo se puede terminar un cronómetro en progreso'})
             
-            # Terminar cronómetro usando la hora del servidor
-            tiempo_servidor = datetime.now()
+            # Terminar cronómetro usando UTC
+            tiempo_utc = get_utc_time()
             cur.execute("""
                 UPDATE participante_evaluacion 
                 SET tiempo_final = %s, estado = 'completada', terminado_por = %s
                 WHERE id = %s
-            """, (tiempo_servidor, current_user['id'], participante_id))
+            """, (tiempo_utc, current_user['id'], participante_id))
             
         elif accion == 'reiniciar':
             if estado_actual == 'pendiente':

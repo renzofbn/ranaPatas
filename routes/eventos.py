@@ -876,9 +876,8 @@ def iniciar_cronometro(nombre_evento, codigo_participante):
             return {'success': False, 'error': 'Usuario no autenticado'}, 401
         
         # Actualizar el participante con el tiempo de inicio y usuario
-        # Configurar timezone GMT-5 (UTC-5)
-        gmt_minus_5 = timezone(timedelta(hours=-5))
-        ahora = datetime.now(gmt_minus_5)
+        # Usar UTC para consistencia
+        ahora = datetime.now(timezone.utc)
         cur.execute("""
             UPDATE participantes_evento 
             SET tiempo_inicio = %s, tiempo_iniciado_por = %s
@@ -963,9 +962,8 @@ def finalizar_cronometro(nombre_evento, codigo_participante):
             return {'success': False, 'error': 'Usuario no autenticado'}, 401
         
         # Primero guardar el tiempo de llegada
-        # Configurar timezone GMT-5 (UTC-5)
-        gmt_minus_5 = timezone(timedelta(hours=-5))
-        ahora = datetime.now(gmt_minus_5)
+        # Usar UTC para consistencia
+        ahora = datetime.now(timezone.utc)
         cur.execute("""
             UPDATE participantes_evento 
             SET tiempo_llegada = %s, tiempo_terminado_por = %s
@@ -1188,9 +1186,8 @@ def iniciar_tiempo(nombre_evento):
         # Obtener usuario actual
         current_user = get_current_user()
         
-        # Crear zona horaria GMT-5
-        gmt_minus_5 = timezone(timedelta(hours=-5))
-        tiempo_inicio = datetime.now(gmt_minus_5)
+        # Usar UTC para consistencia
+        tiempo_inicio = datetime.now(timezone.utc)
         
         # Actualizar el evento: cambiar estado a "enCurso" y registrar tiempo de inicio
         cur.execute("""

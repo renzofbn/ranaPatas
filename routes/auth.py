@@ -4,6 +4,7 @@ from utils import (validate_email, validate_username, validate_password, hash_pa
                   check_password, require_login, get_current_user, create_session, 
                   invalidate_session, invalidate_all_user_sessions, invalidate_current_session_if_needed,
                   recreate_session_after_password_change)
+from datetime import datetime, timezone
 
 # Crear el blueprint para autenticación
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -360,7 +361,7 @@ def cambiar_contrasena():
                 UPDATE usuarios 
                 SET contrasena = %s, password_cambiado_en = %s 
                 WHERE id = %s
-            """, (new_password_hash, datetime.now(), user['id']))
+            """, (new_password_hash, datetime.now(timezone.utc), user['id']))
             
             mysql.connection.commit()
             cur.close()

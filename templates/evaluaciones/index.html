@@ -79,7 +79,9 @@
                                         <p class="subtitle is-6">
                                             Creada por: {{ evaluacion.creado_por_nombre or evaluacion.creado_por_usuario }}
                                             <span class="has-text-grey-light">|</span>
-                                            {{ evaluacion.fecha_creada.strftime('%d/%m/%Y %H:%M') }}
+                                            <span class="fecha-local-evaluacion" data-fecha-utc="{{ evaluacion.fecha_creada.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                                                {{ evaluacion.fecha_creada.strftime('%d/%m/%Y %H:%M') }}
+                                            </span>
                                         </p>
                                     </div>
                                 </div>
@@ -207,6 +209,41 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Convertir fechas UTC a zona horaria local
+    convertirFechasALocal();
+});
+
+function convertirFechasALocal() {
+    // Convertir fechas de creación de evaluaciones
+    const elementosFecha = document.querySelectorAll('[data-fecha-utc]');
+    
+    elementosFecha.forEach(elemento => {
+        const fechaUTC = elemento.getAttribute('data-fecha-utc');
+        if (fechaUTC && fechaUTC !== 'Z') {
+            try {
+                // Crear fecha UTC
+                const fechaObj = new Date(fechaUTC);
+                
+                // Para fechas de creación de evaluaciones
+                if (elemento.classList.contains('fecha-local-evaluacion')) {
+                    const fechaLocal = fechaObj.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    elemento.textContent = fechaLocal.replace(',', '');
+                }
+            } catch (error) {
+                console.error('Error al convertir fecha:', fechaUTC, error);
+            }
+        }
+    });
+}
+
 function toggleActiva(evaluacionId, nombre, estadoActual) {
     const accion = estadoActual ? 'desactivar' : 'activar';
     

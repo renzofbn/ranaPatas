@@ -21,7 +21,7 @@
       </div>
       
       <div class="card-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        <!-- {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
               <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
@@ -30,7 +30,7 @@
               </div>
             {% endfor %}
           {% endif %}
-        {% endwith %}
+        {% endwith %} -->
         
         {% if sessions %}
           <div class="notification is-info is-light">

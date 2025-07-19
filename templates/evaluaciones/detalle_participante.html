@@ -38,7 +38,7 @@
                 </div>
             </div>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
+            <!-- {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
@@ -47,7 +47,7 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-            {% endwith %}
+            {% endwith %} -->
 
             <div class="columns">
                 <!-- Información del participante -->
@@ -505,15 +505,11 @@ function detenerCronometroVivo() {
 }
 
 function iniciarCronometro() {
-    if (confirm('¿Estás seguro de que deseas iniciar el cronómetro para este participante?')) {
-        enviarAccionCronometro('iniciar');
-    }
+    enviarAccionCronometro('iniciar');
 }
 
 function terminarCronometro() {
-    if (confirm('¿Estás seguro de que deseas terminar el cronómetro para este participante?')) {
-        enviarAccionCronometro('terminar');
-    }
+    enviarAccionCronometro('terminar');
 }
 
 function reiniciarCronometro() {

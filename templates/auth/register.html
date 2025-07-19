@@ -11,7 +11,7 @@
             Tu cuenta será revisada por un administrador antes de ser activada.
           </p>
           
-          {% with messages = get_flashed_messages(with_categories=true) %}
+          <!-- {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
               {% for category, message in messages %}
                 <div class="notification {% if category == 'error' %}is-danger{% else %}is-success{% endif %}">
@@ -20,7 +20,7 @@
                 </div>
               {% endfor %}
             {% endif %}
-          {% endwith %}
+          {% endwith %} -->
           
           <form method="POST">
             <div class="field">

@@ -39,6 +39,17 @@
                     </div>
 
                     <div class="field">
+                        <label class="label">Distancia</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" name="distancia" value="{{ evento.distancia }}" placeholder="Ej: 5 km, 1500 metros, Maratón completo" maxlength="100">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-route"></i>
+                            </span>
+                        </div>
+                        <p class="help">Opcional - Distancia o duración del evento (Máximo 100 caracteres)</p>
+                    </div>
+
+                    <div class="field">
                         <label class="label">Fecha y Hora de Inicio</label>
                         <div class="control has-icons-left">
                             <input class="input" type="datetime-local" name="fecha_inicio" value="{{ evento.fecha_inicio }}">

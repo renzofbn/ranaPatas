@@ -17,7 +17,7 @@ def perfil_participante(nombre_usuario):
         
         # Buscar el usuario por nombre de usuario
         cur.execute("""
-            SELECT id, nombre, usuario, fecha_registro
+            SELECT id, nombre, usuario, fecha_registro, sexo, fecha_nacimiento
             FROM usuarios 
             WHERE usuario = %s
         """, (nombre_usuario,))
@@ -235,7 +235,9 @@ def perfil_participante(nombre_usuario):
             'id': usuario_info[0],
             'nombre': usuario_info[1],
             'usuario': usuario_info[2],
-            'fecha_registro': usuario_info[3]
+            'fecha_registro': usuario_info[3],
+            'sexo': usuario_info[4],
+            'fecha_nacimiento': usuario_info[5]
         }
 
         return render_template('participante/perfil.html', 
@@ -258,7 +260,7 @@ def detalle_participacion(nombre_usuario, evento_id):
         
         # Buscar el usuario
         cur.execute("""
-            SELECT id, nombre, usuario 
+            SELECT id, nombre, usuario, sexo, fecha_nacimiento 
             FROM usuarios 
             WHERE usuario = %s
         """, (nombre_usuario,))
@@ -367,7 +369,9 @@ def detalle_participacion(nombre_usuario, evento_id):
         usuario = {
             'id': usuario_info[0],
             'nombre': usuario_info[1],
-            'usuario': usuario_info[2]
+            'usuario': usuario_info[2],
+            'sexo': usuario_info[3],
+            'fecha_nacimiento': usuario_info[4]
         }
         
         return render_template('participante/detalle_participacion.html',

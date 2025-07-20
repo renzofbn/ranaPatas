@@ -22,6 +22,35 @@
                 {% endif %}
                 <p><strong>Usuario:</strong> {{ user.usuario }}</p>
                 <p><strong>Correo:</strong> {{ user.correo }}</p>
+                {% if user.sexo %}
+                <p><strong>Sexo:</strong> 
+                  {% if user.sexo == 'M' %}
+                    <span class="icon-text">
+                      <span class="icon has-text-info">
+                        <i class="fas fa-mars"></i>
+                      </span>
+                      <span>Masculino</span>
+                    </span>
+                  {% elif user.sexo == 'F' %}
+                    <span class="icon-text">
+                      <span class="icon has-text-danger">
+                        <i class="fas fa-venus"></i>
+                      </span>
+                      <span>Femenino</span>
+                    </span>
+                  {% endif %}
+                </p>
+                {% endif %}
+                {% if user.fecha_nacimiento %}
+                <p><strong>Fecha de Nacimiento:</strong> 
+                  <span class="icon-text">
+                    <span>{{ user.fecha_nacimiento.strftime('%d de %B de %Y') }}</span>
+                  </span>
+                  <span class="tag is-dark is-small ml-2">
+                    <span id="edad-usuario" data-fecha-nacimiento="{{ user.fecha_nacimiento.strftime('%Y-%m-%d') }}"></span>
+                  </span>
+                </p>
+                {% endif %}
                 {% if user.fecha_registro %}
                 <p><strong>Miembro desde:</strong> {{ user.fecha_registro.strftime('%d de %B de %Y') }}</p>
                 {% endif %}
@@ -122,4 +151,28 @@
     </div>
   </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Calcular y mostrar la edad del usuario
+  const edadElement = document.getElementById('edad-usuario');
+  if (edadElement) {
+    const fechaNacimiento = edadElement.getAttribute('data-fecha-nacimiento');
+    if (fechaNacimiento) {
+      const hoy = new Date();
+      const nacimiento = new Date(fechaNacimiento);
+      let edad = hoy.getFullYear() - nacimiento.getFullYear();
+      const mesActual = hoy.getMonth();
+      const mesNacimiento = nacimiento.getMonth();
+      
+      // Ajustar la edad si aún no ha pasado el cumpleaños este año
+      if (mesActual < mesNacimiento || (mesActual === mesNacimiento && hoy.getDate() < nacimiento.getDate())) {
+        edad--;
+      }
+      
+      edadElement.textContent = edad + ' años';
+    }
+  }
+});
+</script>
 {% endblock %}

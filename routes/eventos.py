@@ -21,7 +21,7 @@ def index():
         # Obtener eventos del mes actual en adelante, excluyendo cancelados
         cur.execute("""
             SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                   e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                   e.id_usuario_creado, e.lugar, e.distancia, e.observaciones, e.fecha_inicio,
                    e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
                    u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
             FROM eventos e
@@ -45,13 +45,14 @@ def index():
                 'creado_por_usuario': evento[3],
                 'id_usuario_creado': evento[4],
                 'lugar': evento[5] or 'No especificado',
-                'observaciones': evento[6] or '',
-                'fecha_inicio': evento[7],
-                'estado': evento[8] or 'programado',  # Valor por defecto
-                'torneo_empezado_en': evento[9],
-                'torneo_iniciado_por': evento[10],
-                'usuario_creador': evento[11] or evento[3],  # Fallback al nombre guardado
-                'usuario_iniciado': evento[12]
+                'distancia': evento[6] or '',
+                'observaciones': evento[7] or '',
+                'fecha_inicio': evento[8],
+                'estado': evento[9] or 'programado',  # Valor por defecto
+                'torneo_empezado_en': evento[10],
+                'torneo_iniciado_por': evento[11],
+                'usuario_creador': evento[12] or evento[3],  # Fallback al nombre guardado
+                'usuario_iniciado': evento[13]
             })
         
         return render_template('eventos/index.html', eventos=eventos)
@@ -70,6 +71,7 @@ def nuevo():
             # Obtener datos del formulario
             nombre = request.form.get('nombre', '').strip()
             lugar = request.form.get('lugar', '').strip()
+            distancia = request.form.get('distancia', '').strip()
             observaciones = request.form.get('observaciones', '').strip()
             fecha_inicio = request.form.get('fecha_inicio', '').strip()
             estado = request.form.get('estado', 'programado').strip()
@@ -85,6 +87,10 @@ def nuevo():
             
             if lugar and len(lugar) > 150:
                 flash('El lugar no puede tener más de 150 caracteres', 'error')
+                return render_template('eventos/nuevo.html')
+            
+            if distancia and len(distancia) > 100:
+                flash('La distancia no puede tener más de 100 caracteres', 'error')
                 return render_template('eventos/nuevo.html')
             
             # Validar fecha si se proporciona
@@ -104,13 +110,14 @@ def nuevo():
             cur = mysql.connection.cursor()
             
             cur.execute("""
-                INSERT INTO eventos (nombre, creado_por_usuario, id_usuario_creado, lugar, observaciones, fecha_inicio, estado)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO eventos (nombre, creado_por_usuario, id_usuario_creado, lugar, distancia, observaciones, fecha_inicio, estado)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 nombre,
                 current_user['usuario'],
                 current_user['id'],
                 lugar if lugar else None,
+                distancia if distancia else None,
                 observaciones if observaciones else None,
                 fecha_inicio_obj,
                 estado
@@ -150,7 +157,7 @@ def detalle(nombre_evento):
             # Buscar evento por ID específico
             cur.execute("""
                 SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.id_usuario_creado, e.lugar, e.distancia, e.observaciones, e.fecha_inicio,
                        e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
                        u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
                 FROM eventos e
@@ -163,7 +170,7 @@ def detalle(nombre_evento):
             nombre_busqueda = nombre_evento.replace('-', ' ')
             cur.execute("""
                 SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                       e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                       e.id_usuario_creado, e.lugar, e.distancia, e.observaciones, e.fecha_inicio,
                        e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
                        u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
                 FROM eventos e
@@ -190,13 +197,14 @@ def detalle(nombre_evento):
             'creado_por_usuario': evento_raw[3],
             'id_usuario_creado': evento_raw[4],
             'lugar': evento_raw[5] or 'No especificado',
-            'observaciones': evento_raw[6] or 'Sin observaciones',
-            'fecha_inicio': evento_raw[7],
-            'estado': evento_raw[8] or 'programado',
-            'torneo_empezado_en': evento_raw[9],
-            'torneo_iniciado_por': evento_raw[10],
-            'usuario_creador': evento_raw[11] or evento_raw[3],
-            'usuario_iniciado': evento_raw[12]
+            'distancia': evento_raw[6] or '',
+            'observaciones': evento_raw[7] or 'Sin observaciones',
+            'fecha_inicio': evento_raw[8],
+            'estado': evento_raw[9] or 'programado',
+            'torneo_empezado_en': evento_raw[10],
+            'torneo_iniciado_por': evento_raw[11],
+            'usuario_creador': evento_raw[12] or evento_raw[3],
+            'usuario_iniciado': evento_raw[13]
         }
         
         # Obtener participantes del evento
@@ -284,6 +292,7 @@ def editar(evento_id):
             # Obtener datos del formulario
             nombre = request.form.get('nombre', '').strip()
             lugar = request.form.get('lugar', '').strip()
+            distancia = request.form.get('distancia', '').strip()
             observaciones = request.form.get('observaciones', '').strip()
             fecha_inicio = request.form.get('fecha_inicio', '').strip()
             estado = request.form.get('estado', 'programado').strip()
@@ -291,6 +300,18 @@ def editar(evento_id):
             # Validaciones básicas
             if not nombre:
                 flash('El nombre del evento es obligatorio', 'error')
+                return redirect(url_for('eventos.editar', evento_id=evento_id))
+            
+            if len(nombre) > 100:
+                flash('El nombre del evento no puede tener más de 100 caracteres', 'error')
+                return redirect(url_for('eventos.editar', evento_id=evento_id))
+            
+            if lugar and len(lugar) > 150:
+                flash('El lugar no puede tener más de 150 caracteres', 'error')
+                return redirect(url_for('eventos.editar', evento_id=evento_id))
+            
+            if distancia and len(distancia) > 100:
+                flash('La distancia no puede tener más de 100 caracteres', 'error')
                 return redirect(url_for('eventos.editar', evento_id=evento_id))
             
             # Validar fecha si se proporciona
@@ -308,11 +329,12 @@ def editar(evento_id):
             
             cur.execute("""
                 UPDATE eventos 
-                SET nombre = %s, lugar = %s, observaciones = %s, fecha_inicio = %s, estado = %s
+                SET nombre = %s, lugar = %s, distancia = %s, observaciones = %s, fecha_inicio = %s, estado = %s
                 WHERE id = %s
             """, (
                 nombre,
                 lugar if lugar else None,
+                distancia if distancia else None,
                 observaciones if observaciones else None,
                 fecha_inicio_obj,
                 estado,
@@ -335,7 +357,7 @@ def editar(evento_id):
         cur = mysql.connection.cursor()
         
         cur.execute("""
-            SELECT id, nombre, lugar, observaciones, fecha_inicio, estado
+            SELECT id, nombre, lugar, distancia, observaciones, fecha_inicio, estado
             FROM eventos 
             WHERE id = %s
         """, (evento_id,))
@@ -351,9 +373,10 @@ def editar(evento_id):
             'id': evento_raw[0],
             'nombre': evento_raw[1],
             'lugar': evento_raw[2] or '',
-            'observaciones': evento_raw[3] or '',
-            'fecha_inicio': evento_raw[4].strftime('%Y-%m-%dT%H:%M') if evento_raw[4] else '',
-            'estado': evento_raw[5] or 'programado'
+            'distancia': evento_raw[3] or '',
+            'observaciones': evento_raw[4] or '',
+            'fecha_inicio': evento_raw[5].strftime('%Y-%m-%dT%H:%M') if evento_raw[5] else '',
+            'estado': evento_raw[6] or 'programado'
         }
         
         return render_template('eventos/editar.html', evento=evento)
@@ -1097,7 +1120,7 @@ def todos():
         # Obtener todos los eventos con información del usuario creador
         cur.execute("""
             SELECT e.id, e.nombre, e.fecha_creacion, e.creado_por_usuario, 
-                   e.id_usuario_creado, e.lugar, e.observaciones, e.fecha_inicio,
+                   e.id_usuario_creado, e.lugar, e.distancia, e.observaciones, e.fecha_inicio,
                    e.estado, e.torneo_empezado_en, e.torneo_iniciado_por,
                    u.usuario as usuario_creador, u_iniciado.usuario as usuario_iniciado
             FROM eventos e
@@ -1119,13 +1142,14 @@ def todos():
                 'creado_por_usuario': evento[3],
                 'id_usuario_creado': evento[4],
                 'lugar': evento[5] or 'No especificado',
-                'observaciones': evento[6] or '',
-                'fecha_inicio': evento[7],
-                'estado': evento[8] or 'programado',
-                'torneo_empezado_en': evento[9],
-                'torneo_iniciado_por': evento[10],
-                'usuario_creador': evento[11] or evento[3],  # Fallback al nombre guardado
-                'usuario_iniciado': evento[12]
+                'distancia': evento[6] or '',
+                'observaciones': evento[7] or '',
+                'fecha_inicio': evento[8],
+                'estado': evento[9] or 'programado',
+                'torneo_empezado_en': evento[10],
+                'torneo_iniciado_por': evento[11],
+                'usuario_creador': evento[12] or evento[3],  # Fallback al nombre guardado
+                'usuario_iniciado': evento[13]
             })
         
         return render_template('eventos/todos.html', eventos=eventos)

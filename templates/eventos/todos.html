@@ -70,6 +70,7 @@
                                 <th><abbr title="ID">ID</abbr></th>
                                 <th>Nombre del Evento</th>
                                 <th>Lugar</th>
+                                <th>Distancia</th>
                                 <th>Programado para el</th>
                                 <th>Estado</th>
                                 <th>Creado por</th>
@@ -109,6 +110,19 @@
                                         </span>
                                         <span>{{ evento.lugar }}</span>
                                     </span>
+                                </td>
+                                <td>
+                                    {% if evento.distancia %}
+                                        <span class="tag is-success is-light">
+                                            <i class="fas fa-route mr-1"></i>
+                                            {{ evento.distancia }}
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-light">
+                                            <i class="fas fa-question mr-1"></i>
+                                            Sin especificar
+                                        </span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if evento.fecha_inicio %}

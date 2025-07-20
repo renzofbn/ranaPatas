@@ -291,6 +291,47 @@
                         
                         <div class="content">
                             <p>
+                                <strong>Participante:</strong> 
+                                {{ usuario.nombre }} (@{{ usuario.usuario }})
+                            </p>
+                            
+                            {% if usuario.sexo %}
+                            <p>
+                                <strong>Sexo:</strong> 
+                                {% if usuario.sexo == 'M' %}
+                                    <span class="icon-text">
+                                        <span class="icon has-text-info">
+                                            <i class="fas fa-mars"></i>
+                                        </span>
+                                        <span>Masculino</span>
+                                    </span>
+                                {% elif usuario.sexo == 'F' %}
+                                    <span class="icon-text">
+                                        <span class="icon has-text-danger">
+                                            <i class="fas fa-venus"></i>
+                                        </span>
+                                        <span>Femenino</span>
+                                    </span>
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                            
+                            {% if usuario.fecha_nacimiento %}
+                            <p>
+                                <strong>Fecha de Nacimiento:</strong> 
+                                <span class="icon-text">
+                                    <span class="icon has-text-primary">
+                                        <i class="fas fa-birthday-cake"></i>
+                                    </span>
+                                    <span>{{ usuario.fecha_nacimiento.strftime('%d de %B de %Y') }}</span>
+                                </span>
+                                <span class="tag is-light is-small ml-1" id="edad-usuario" data-fecha-nacimiento="{{ usuario.fecha_nacimiento.strftime('%Y-%m-%d') }}"></span>
+                            </p>
+                            {% endif %}
+                            
+                            <hr>
+                            
+                            <p>
                                 <strong>Agregado por:</strong> 
                                 {% if participacion.agregado_por %}
                                     @{{ participacion.agregado_por }}
@@ -381,4 +422,28 @@
     text-transform: uppercase;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular y mostrar la edad del usuario
+    const edadElement = document.getElementById('edad-usuario');
+    if (edadElement) {
+        const fechaNacimiento = edadElement.getAttribute('data-fecha-nacimiento');
+        if (fechaNacimiento) {
+            const hoy = new Date();
+            const nacimiento = new Date(fechaNacimiento);
+            let edad = hoy.getFullYear() - nacimiento.getFullYear();
+            const mesActual = hoy.getMonth();
+            const mesNacimiento = nacimiento.getMonth();
+            
+            // Ajustar la edad si aún no ha pasado el cumpleaños este año
+            if (mesActual < mesNacimiento || (mesActual === mesNacimiento && hoy.getDate() < nacimiento.getDate())) {
+                edad--;
+            }
+            
+            edadElement.textContent = edad + ' años';
+        }
+    }
+});
+</script>
 {% endblock %}

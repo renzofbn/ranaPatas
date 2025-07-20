@@ -19,7 +19,7 @@
                         </div>
                     </div>
                 </div>
-                {% if session.is_admin %}
+                {% if session and session.is_admin %}
                 <div class="level-right">
                     <div class="level-item">
                         <div class="buttons">
@@ -72,11 +72,12 @@
                                 <th><abbr title="Orden">#</abbr></th>
                                 <th>Nombre del Evento</th>
                                 <th>Lugar</th>
+                                <th>Distancia</th>
                                 <th>Programado para el</th>
                                 <th>Estado</th>
                                 <th>Creado por</th>
                                 <th>Ver</th>
-                                {% if session.is_admin %}
+                                {% if session and session.is_admin %}
                                 <th>Acciones</th>
                                 {% endif %}
                             </tr>
@@ -112,6 +113,21 @@
                                         </span>
                                         <span>{{ evento.lugar }}</span>
                                     </span>
+                                </td>
+                                <td>
+                                    {% if evento.distancia %}
+                                        <span class="icon-text">
+                                            <span class="icon has-text-primary">
+                                                <i class="fas fa-route"></i>
+                                            </span>
+                                            <span>{{ evento.distancia }}</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="has-text-grey-light">
+                                            <i class="fas fa-minus"></i>
+                                            No especificada
+                                        </span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if evento.fecha_inicio %}
@@ -175,7 +191,7 @@
                                     </a>
                                     </div>
                                 </td>
-                                {% if session.is_admin %}
+                                {% if session and session.is_admin %}
                                 <td>
                                     <div class="buttons">
                                         <a href="{{ url_for('eventos.editar', evento_id=evento.id) }}" class="button is-small is-info">
@@ -183,7 +199,7 @@
                                                 <i class="fas fa-edit"></i>
                                             </span>
                                         </a>
-                                        {% if session.logged_in and session.user_id == evento.id_usuario_creado %}
+                                        {% if session and session.logged_in and session.user_id == evento.id_usuario_creado %}
                                         <form method="POST" action="{{ url_for('eventos.eliminar', evento_id=evento.id) }}" style="display: inline;">
                                             <button type="submit" class="button is-small is-danger" 
                                                     onclick="return confirm('¿Estás seguro de eliminar el evento {{ evento.nombre }}? Esta acción no se puede deshacer.')">
@@ -199,13 +215,13 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="{% if session.is_admin %}8{% else %}7{% endif %}" class="has-text-centered">
+                                <td colspan="{% if session and session.is_admin %}9{% else %}8{% endif %}" class="has-text-centered">
                                     <div class="content">
                                         <p>
                                             <i class="fas fa-calendar-times fa-3x has-text-grey-light"></i>
                                         </p>
                                         <p class="has-text-grey">No hay eventos próximos registrados</p>
-                                        {% if session.is_admin %}
+                                        {% if session and session.is_admin %}
                                         <a href="{{ url_for('eventos.nuevo') }}" class="button is-primary mt-3">
                                             <span class="icon">
                                                 <i class="fas fa-plus"></i>
@@ -228,7 +244,7 @@
                     <p><strong>Información sobre Eventos:</strong></p>
                     <ul>
                         <li>Se muestran eventos del mes actual en adelante (excluyendo cancelados)</li>
-                        {% if session.is_admin %}
+                        {% if session and session.is_admin %}
                         <li>Los eventos se muestran ordenados por fecha de inicio</li>
                         {% else %}
                         <li>Solo los administradores pueden gestionar eventos</li>

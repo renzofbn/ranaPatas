@@ -141,6 +141,8 @@ def register():
         nombre = request.form['nombre']
         usuario = request.form['usuario']
         correo = request.form['correo']
+        sexo = request.form.get('sexo') or None  # Puede ser None si no se selecciona
+        fecha_nacimiento = request.form.get('fecha_nacimiento') or None  # Puede ser None si no se proporciona
         contrasena = request.form['contrasena']
         confirmar_contrasena = request.form['confirmar_contrasena']
         
@@ -163,6 +165,29 @@ def register():
         # Validar email
         if not validate_email(correo):
             flash('El formato del correo electrónico no es válido', 'error')
+            return render_template('auth/register.html')
+        
+        # Validar fecha de nacimiento (opcional, pero si se proporciona debe ser válida)
+        if fecha_nacimiento:
+            try:
+                from datetime import datetime
+                fecha_nacimiento_obj = datetime.strptime(fecha_nacimiento, '%Y-%m-%d').date()
+                fecha_actual = datetime.now().date()
+                if fecha_nacimiento_obj > fecha_actual:
+                    flash('La fecha de nacimiento no puede ser una fecha futura', 'error')
+                    return render_template('auth/register.html')
+                # Verificar que la persona tenga al menos 13 años (opcional)
+                edad = fecha_actual.year - fecha_nacimiento_obj.year - ((fecha_actual.month, fecha_actual.day) < (fecha_nacimiento_obj.month, fecha_nacimiento_obj.day))
+                if edad < 13:
+                    flash('Debes tener al menos 13 años para registrarte', 'error')
+                    return render_template('auth/register.html')
+            except ValueError:
+                flash('Formato de fecha de nacimiento inválido', 'error')
+                return render_template('auth/register.html')
+        
+        # Validar sexo (opcional, pero si se proporciona debe ser válido)
+        if sexo and sexo not in ['M', 'F']:
+            flash('Valor de sexo inválido', 'error')
             return render_template('auth/register.html')
         
         # Validar contraseña
@@ -193,9 +218,9 @@ def register():
             hashed_password = hash_password(contrasena)
             
             # Insertar nuevo usuario con estado pendiente y rol por defecto (Usuario)
-            cur.execute("""INSERT INTO usuarios (nombre, usuario, correo, contrasena, estado_aprobacion, rol) 
-                           VALUES (%s, %s, %s, %s, 'pendiente', 1)""", 
-                       (nombre.strip(), usuario, correo, hashed_password))
+            cur.execute("""INSERT INTO usuarios (nombre, usuario, correo, sexo, fecha_nacimiento, contrasena, estado_aprobacion, rol) 
+                           VALUES (%s, %s, %s, %s, %s, %s, 'pendiente', 1)""", 
+                       (nombre.strip(), usuario, correo, sexo, fecha_nacimiento, hashed_password))
             mysql.connection.commit()
             
             # Crear notificación para administradores
@@ -251,7 +276,7 @@ def perfil():
         
         # Obtener información completa del usuario
         cur.execute("""
-            SELECT id, usuario, correo, nombre, isAdmin, fecha_registro, ultimo_login, rol
+            SELECT id, usuario, correo, nombre, isAdmin, fecha_registro, ultimo_login, rol, sexo, fecha_nacimiento
             FROM usuarios 
             WHERE id = %s
         """, (current_user['id'],))
@@ -281,6 +306,8 @@ def perfil():
                 'fecha_registro': usuario_completo[5],
                 'ultimo_login': usuario_completo[6],
                 'rol': usuario_completo[7] or 1,
+                'sexo': usuario_completo[8],
+                'fecha_nacimiento': usuario_completo[9],
                 'total_participaciones': estadisticas[0] if estadisticas else 0,
                 'eventos_completados': estadisticas[1] if estadisticas else 0,
                 'eventos_en_progreso': estadisticas[2] if estadisticas else 0
@@ -291,6 +318,8 @@ def perfil():
             user['nombre'] = None
             user['fecha_registro'] = None
             user['ultimo_login'] = None
+            user['sexo'] = None
+            user['fecha_nacimiento'] = None
             user['rol'] = current_user.get('rol', 1)
             user['total_participaciones'] = 0
             user['eventos_completados'] = 0

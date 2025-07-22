@@ -455,6 +455,11 @@ def agregar_participante(nombre_evento):
             flash('Código y nombre son requeridos', 'error')
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
+        # Validar que el código sea un DNI válido (8 dígitos)
+        if not codigo.isdigit() or len(codigo) != 8:
+            flash('El código debe ser un DNI válido de 8 dígitos', 'error')
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
         # Validar que se proporcionó un usuario_id válido
         if not usuario_id:
             flash('Debes seleccionar un usuario válido de la lista', 'error')
@@ -466,11 +471,17 @@ def agregar_participante(nombre_evento):
         # Obtener ID del usuario actual
         usuario_actual = get_current_user()
         
-        # Verificar que el usuario existe
-        cur.execute("SELECT nombre FROM usuarios WHERE id = %s", (usuario_id,))
+        # Verificar que el usuario existe y que su DNI coincida con el código
+        cur.execute("SELECT nombre, dni FROM usuarios WHERE id = %s", (usuario_id,))
         usuario_info = cur.fetchone()
         if not usuario_info:
             flash('El usuario seleccionado no existe', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        # Verificar que el DNI del usuario coincida con el código enviado
+        if usuario_info[1] != codigo:
+            flash('El código no coincide con el DNI del usuario seleccionado', 'error')
             cur.close()
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
@@ -592,6 +603,11 @@ def inscribirse_evento(nombre_evento):
             flash('El código es requerido', 'error')
             return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
+        # Validar formato de DNI (8 dígitos)
+        if not re.match(r'^\d{8}$', codigo):
+            flash('El código debe ser un DNI válido de 8 dígitos', 'error')
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
         mysql = get_mysql()
         cur = mysql.connection.cursor()
         
@@ -600,6 +616,22 @@ def inscribirse_evento(nombre_evento):
         if not usuario_actual:
             flash('Debes iniciar sesión para inscribirte', 'error')
             return redirect(url_for('auth.login'))
+        
+        # Verificar que el DNI proporcionado coincida con el DNI del usuario
+        cur.execute("SELECT dni, nombre FROM usuarios WHERE id = %s", (usuario_actual['id'],))
+        user_data = cur.fetchone()
+        
+        if not user_data or not user_data[0]:
+            flash('No tienes un DNI registrado. Contacta al administrador para actualizar tu perfil.', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
+        
+        user_dni, user_nombre = user_data
+        
+        if user_dni != codigo:
+            flash('El código proporcionado no coincide con tu DNI registrado', 'error')
+            cur.close()
+            return redirect(url_for('eventos.detalle', nombre_evento=nombre_evento))
         
         # Extraer el ID del slug (formato: ID-nombre)
         evento_id = None
@@ -663,7 +695,7 @@ def inscribirse_evento(nombre_evento):
             INSERT INTO participantes_evento 
             (codigo, nombre, usuario_id, participante_agregado_por, evento_id)
             VALUES (%s, %s, %s, %s, %s)
-        """, (codigo, usuario_actual['nombre'], usuario_actual['id'], usuario_actual['id'], evento_id))
+        """, (codigo, user_nombre, usuario_actual['id'], usuario_actual['id'], evento_id))
         
         mysql.connection.commit()
         cur.close()

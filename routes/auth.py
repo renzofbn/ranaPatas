@@ -484,22 +484,24 @@ def api_usuarios():
         cur = mysql.connection.cursor()
         
         if query:
-            # Buscar usuarios que coincidan con el query y que no estén rechazados ni bloqueados
+            # Buscar usuarios que coincidan con el query, tengan DNI y que no estén rechazados ni bloqueados
             cur.execute("""
-                SELECT id, nombre, usuario 
+                SELECT id, nombre, usuario, dni 
                 FROM usuarios 
                 WHERE (nombre LIKE %s OR usuario LIKE %s)
+                AND dni IS NOT NULL AND dni != ''
                 AND estado_aprobacion != 'rechazado'
                 AND cuenta_bloqueada = 0
                 ORDER BY nombre ASC 
                 LIMIT 10
             """, (f'%{query}%', f'%{query}%'))
         else:
-            # Obtener todos los usuarios que no estén rechazados ni bloqueados
+            # Obtener usuarios que tengan DNI y que no estén rechazados ni bloqueados
             cur.execute("""
-                SELECT id, nombre, usuario 
+                SELECT id, nombre, usuario, dni 
                 FROM usuarios 
-                WHERE estado_aprobacion != 'rechazado'
+                WHERE dni IS NOT NULL AND dni != ''
+                AND estado_aprobacion != 'rechazado'
                 AND cuenta_bloqueada = 0
                 ORDER BY nombre ASC 
                 LIMIT 20
@@ -515,10 +517,32 @@ def api_usuarios():
                 'id': usuario[0],
                 'nombre': usuario[1],
                 'usuario': usuario[2],
-                'display': f"{usuario[1]} (@{usuario[2]})"
+                'dni': usuario[3],
+                'display': f"{usuario[1]} (@{usuario[2]}) - DNI: {usuario[3]}"
             })
         
         return jsonify(usuarios_lista)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/api/mi-dni', methods=['GET'])
+@require_login()
+def api_mi_dni():
+    """API para obtener el DNI del usuario actual"""
+    try:
+        current_user = get_current_user()
+        mysql = get_mysql()
+        cur = mysql.connection.cursor()
+        
+        cur.execute("SELECT dni FROM usuarios WHERE id = %s", (current_user['id'],))
+        resultado = cur.fetchone()
+        cur.close()
+        
+        if resultado and resultado[0]:
+            return jsonify({'dni': resultado[0]})
+        else:
+            return jsonify({'dni': None, 'error': 'Usuario sin DNI registrado'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': 'Error al obtener DNI'}), 500

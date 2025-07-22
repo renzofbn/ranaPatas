@@ -807,6 +807,7 @@
                         </span>
                     </div>
                     <input type="hidden" id="usuario-id" name="usuario_id" value="">
+                    <input type="hidden" id="usuario-dni" name="codigo" value="">
                     <div id="dropdown-usuarios" class="dropdown">
                         <div class="dropdown-menu" id="dropdown-menu-usuarios" role="menu">
                             <div class="dropdown-content" id="usuarios-lista">
@@ -814,18 +815,18 @@
                             </div>
                         </div>
                     </div>
-                    <p class="help">Selecciona un usuario registrado en el sistema</p>
-                </div>
+                    <p class="help">Selecciona un usuario registrado. Su DNI se usará como código del participante.</p>
+                </input>
 
-                 <div class="field">
-                    <label class="label">Código del Participante</label>
+                <div class="field" id="codigo-preview" style="display: none;">
+                    <label class="label">Código del Participante (DNI)</label>
                     <div class="control has-icons-left">
-                        <input class="input" type="text" name="codigo" placeholder="Ej: P004" required>
+                        <input class="input" type="text" id="codigo-display" readonly>
                         <span class="icon is-small is-left">
-                            <i class="fas fa-hashtag"></i>
+                            <i class="fas fa-id-card"></i>
                         </span>
                     </div>
-                    <p class="help">Código único para identificar al participante</p>
+                    <p class="help">Este será el código del participante basado en su DNI</p>
                 </div>
             </section>
             <footer class="modal-card-foot">
@@ -853,7 +854,7 @@
             </p>
             <button class="delete" onclick="closeModal('modal-inscripcion-personal')"></button>
         </header>
-        <form method="POST" action="{{ url_for('eventos.inscribirse_evento', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}">
+        <form method="POST" action="{{ url_for('eventos.inscribirse_evento', nombre_evento=evento_url_slug(evento.id, evento.nombre)) }}" id="form-inscripcion-personal">
             <section class="modal-card-body">
                 <div class="content">
                     <div class="notification is-info is-light">
@@ -883,28 +884,28 @@
                     </div>
 
                     <div class="field">
-                        <label class="label">Código del Participante</label>
+                        <label class="label">Tu DNI (Código del Participante)</label>
                         <div class="control has-icons-left">
-                            <input class="input" type="text" name="codigo" id="codigo-inscripcion" placeholder="Ej: P004" required>
+                            <input class="input" type="text" name="codigo" id="codigo-inscripcion" readonly>
                             <span class="icon is-small is-left">
-                                <i class="fas fa-hashtag"></i>
+                                <i class="fas fa-id-card"></i>
                             </span>
                         </div>
-                        <p class="help">Ingresa un código único para identificarte en el evento</p>
+                        <p class="help">Tu DNI se usará automáticamente como código del participante</p>
                     </div>
                     
-                    <div class="notification is-warning is-light">
+                    <!-- <div class="notification is-warning is-light">
                         <p><strong>Importante:</strong></p>
                         <ul>
                             <li>Una vez inscrito, tu participación quedará registrada</li>
                             <li>El código debe ser único en este evento</li>
                             <li>Podrás ver tu progreso desde tu perfil de participante</li>
                         </ul>
-                    </div>
+                    </div> -->
                 </div>
             </section>
             <footer class="modal-card-foot">
-                <button type="submit" class="button is-success">
+                <button type="submit" class="button is-success mr-2">
                     <span class="icon">
                         <i class="fas fa-check"></i>
                     </span>
@@ -926,11 +927,21 @@ function closeModal(modalId) {
 }
 
 function abrirModalInscripcion() {
-    document.getElementById('modal-inscripcion-personal').classList.add('is-active');
-    // Focus en el campo de código después de un delay
-    setTimeout(() => {
-        document.getElementById('codigo-inscripcion').focus();
-    }, 100);
+    // Obtener el DNI del usuario actual
+    fetch('/auth/api/mi-dni')
+        .then(response => response.json())
+        .then(data => {
+            if (data.dni) {
+                document.getElementById('codigo-inscripcion').value = data.dni;
+                document.getElementById('modal-inscripcion-personal').classList.add('is-active');
+            } else {
+                alert('No tienes un DNI registrado. Contacta al administrador para actualizar tu perfil.');
+            }
+        })
+        .catch(error => {
+            console.error('Error al obtener DNI:', error);
+            alert('Error al obtener tu información. Inténtalo de nuevo.');
+        });
 }
 
 function confirmarEliminar(nombreParticipante, participanteId) {
@@ -1107,7 +1118,7 @@ function inicializarAutocompletadoUsuarios() {
         }
     });
     
-    // Validar que se haya seleccionado un usuario
+    // Validar que se haya seleccionado un usuario con DNI
     const form = inputNombre.closest('form');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -1116,6 +1127,13 @@ function inicializarAutocompletadoUsuarios() {
                 inputNombre.classList.add('is-danger');
                 inputNombre.focus();
                 alert('Por favor, selecciona un usuario válido de la lista.');
+                return false;
+            }
+            
+            const dniValue = document.getElementById('usuario-dni').value;
+            if (!dniValue || dniValue.trim() === '') {
+                e.preventDefault();
+                alert('El usuario seleccionado debe tener un DNI registrado para poder participar.');
                 return false;
             }
         });
@@ -1154,6 +1172,12 @@ function inicializarAutocompletadoUsuarios() {
                 item.className = 'dropdown-item';
                 item.dataset.usuarioId = usuario.id;
                 item.dataset.usuarioNombre = usuario.nombre;
+                item.dataset.usuarioDni = usuario.dni || '';
+                
+                // Solo mostrar usuarios que tengan DNI
+                if (!usuario.dni) {
+                    return; // Saltar usuarios sin DNI
+                }
                 
                 item.innerHTML = `
                     <div class="usuario-info">
@@ -1162,7 +1186,7 @@ function inicializarAutocompletadoUsuarios() {
                              alt="Avatar">
                         <div class="usuario-detalles">
                             <div class="usuario-nombre">${usuario.nombre}</div>
-                            <div class="usuario-username">@${usuario.usuario}</div>
+                            <div class="usuario-username">@${usuario.usuario} - DNI: ${usuario.dni}</div>
                         </div>
                     </div>
                 `;
@@ -1192,13 +1216,24 @@ function inicializarAutocompletadoUsuarios() {
     function seleccionarUsuario(item) {
         const usuarioId = item.dataset.usuarioId;
         const usuarioNombre = item.dataset.usuarioNombre;
+        const usuarioDni = item.dataset.usuarioDni;
         
-        if (usuarioId && usuarioNombre) {
+        if (usuarioId && usuarioNombre && usuarioDni) {
             inputNombre.value = usuarioNombre;
             inputUsuarioId.value = usuarioId;
+            document.getElementById('usuario-dni').value = usuarioDni;
+            document.getElementById('codigo-display').value = usuarioDni;
+            document.getElementById('codigo-preview').style.display = 'block';
+            
             inputNombre.classList.remove('is-danger');
             inputNombre.classList.add('is-success');
-            usuarioSeleccionado = { id: usuarioId, nombre: usuarioNombre };
+            usuarioSeleccionado = { id: usuarioId, nombre: usuarioNombre, dni: usuarioDni };
+        } else if (!usuarioDni) {
+            // Si el usuario no tiene DNI, mostrar error
+            inputNombre.classList.add('is-danger');
+            alert('El usuario seleccionado no tiene DNI registrado. Solo se pueden agregar usuarios con DNI.');
+            limpiarSeleccion();
+            return;
         }
         
         cerrarDropdown();
@@ -1225,6 +1260,9 @@ function inicializarAutocompletadoUsuarios() {
     
     function limpiarSeleccion() {
         inputUsuarioId.value = '';
+        document.getElementById('usuario-dni').value = '';
+        document.getElementById('codigo-display').value = '';
+        document.getElementById('codigo-preview').style.display = 'none';
         usuarioSeleccionado = null;
         inputNombre.classList.remove('is-success', 'is-danger');
     }
@@ -1403,5 +1441,29 @@ function inicializarContadorTiempo() {
     setInterval(actualizarContador, 1000);
     {% endif %}
 }
+
+// Validación del formulario de auto-inscripción
+document.addEventListener('DOMContentLoaded', function() {
+    const formInscripcion = document.getElementById('form-inscripcion-personal');
+    if (formInscripcion) {
+        formInscripcion.addEventListener('submit', function(e) {
+            const codigoInput = document.getElementById('codigo-inscripcion');
+            const codigoValue = codigoInput.value.trim();
+            
+            if (!codigoValue) {
+                e.preventDefault();
+                alert('Error: No se pudo obtener tu DNI. Por favor, cierra el modal e inténtalo de nuevo.');
+                return false;
+            }
+            
+            // Validar formato de DNI (8 dígitos)
+            if (!/^\d{8}$/.test(codigoValue)) {
+                e.preventDefault();
+                alert('Error: El DNI debe tener exactamente 8 dígitos.');
+                return false;
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

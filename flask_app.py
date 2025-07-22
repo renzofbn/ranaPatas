@@ -89,7 +89,8 @@ def create_app(config_name='default'):
         # Rutas que no requieren validación de sesión
         exempt_routes = [
             'auth.login', 'auth.register', 'auth.logout', 
-            'blog.index', 'eventos.index', 'static', 'login_redirect', 'register_redirect',
+            'blog.index', 'blog.programa', 'blog.inscripcion', 'blog.eventos_registro',
+            'eventos.index', 'static', 'login_redirect', 'register_redirect',
             'logout_redirect', 'perfil_redirect'
         ]
         

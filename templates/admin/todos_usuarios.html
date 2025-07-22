@@ -80,6 +80,7 @@
             <tr>
               <th>Usuario</th>
               <th>Correo</th>
+              <th>DNI</th>
               <th>Estado</th>
               <th>Rol Asignado</th>
               <th>Registrado el</th>
@@ -90,7 +91,7 @@
           </thead>
           <tbody>
             {% for usuario in usuarios %}
-            <tr data-estado="{{ usuario[4] }}" data-rol="{{ usuario[8] or 1 }}" data-busqueda="{{ (usuario[1] + ' ' + usuario[2] + ' ' + usuario[3])|lower }}">
+            <tr data-estado="{{ usuario[5] }}" data-rol="{{ usuario[9] or 1 }}" data-busqueda="{{ (usuario[1] + ' ' + usuario[2] + ' ' + usuario[3] + ' ' + usuario[4])|lower }}">
               <!-- <td>
                 <strong>{{ usuario[1] }}</strong>
               </td> -->
@@ -99,21 +100,24 @@
               </td>
               <td>{{ usuario[3] }}</td>
               <td>
-                {% if usuario[4] == 'pendiente' %}
+                <span class="tag is-primary">{{ usuario[4] }}</span>
+              </td>
+              <td>
+                {% if usuario[5] == 'pendiente' %}
                   <span class="tag is-warning">
                     <span class="icon">
                       <i class="fas fa-clock"></i>
                     </span>
                     <span>Pendiente</span>
                   </span>
-                {% elif usuario[4] == 'aprobado' %}
+                {% elif usuario[5] == 'aprobado' %}
                   <span class="tag is-success">
                     <span class="icon">
                       <i class="fas fa-check"></i>
                     </span>
                     <span>Aprobado</span>
                   </span>
-                {% elif usuario[4] == 'rechazado' %}
+                {% elif usuario[5] == 'rechazado' %}
                   <span class="tag is-danger">
                     <span class="icon">
                       <i class="fas fa-times"></i>
@@ -123,7 +127,7 @@
                 {% endif %}
               </td>
                 <td>
-                {% if usuario[4] == 'rechazado' %}
+                {% if usuario[5] == 'rechazado' %}
                   <span class="tag is-light">
                   <span class="icon has-text-grey-dark">
                     <i class="fas fa-minus"></i>
@@ -131,7 +135,7 @@
                   <span class="has-text-grey-dark">Sin rol</span>
                   </span>
                 {% else %}
-                  {% set rol_id = usuario[8] or 1 %}
+                  {% set rol_id = usuario[9] or 1 %}
                   {% if rol_id == 1 %}
                   <span class="tag is-dark">
                     <span class="icon">
@@ -164,12 +168,12 @@
                 {% endif %}
                 </td>
               <td>
-                {% if usuario[5] %}
-                  <span class="tag is-dark fecha-local-registro" data-fecha-utc="{{ usuario[5].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                {% if usuario[6] %}
+                  <span class="tag is-dark fecha-local-registro" data-fecha-utc="{{ usuario[6].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                   <span class="icon">
                     <i class="fas fa-calendar-plus"></i>
                   </span>
-                  <span>{{ usuario[5].strftime('%d/%m/%Y') }}</span>
+                  <span>{{ usuario[6].strftime('%d/%m/%Y') }}</span>
                   </span>
                 {% else %}
                   <span class="tag is-grey-dark">
@@ -181,12 +185,12 @@
                 {% endif %}
               </td>
                 <td>
-                {% if usuario[6] %}
-                  <span class="tag is-primary is-light fecha-local-procesado" data-fecha-utc="{{ usuario[6].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                {% if usuario[7] %}
+                  <span class="tag is-primary is-light fecha-local-procesado" data-fecha-utc="{{ usuario[7].strftime('%Y-%m-%dT%H:%M:%S') }}Z">
                   <span class="icon">
                     <i class="fas fa-clock"></i>
                   </span>
-                  <span>{{ usuario[6].strftime('%d/%m/%Y') }}</span>
+                  <span>{{ usuario[7].strftime('%d/%m/%Y') }}</span>
                   </span>
                 {% else %}
                   <span class="tag is-grey">
@@ -198,20 +202,20 @@
                 {% endif %}
                 </td>
               <td>
-                {% if usuario[9] %}
+                {% if usuario[10] %}
                   <span class="tag is-info is-light">
                     <span class="icon">
                       <i class="fas fa-user-shield"></i>
                     </span>
-                    <span>{{ usuario[9] }}</span>
+                    <span>{{ usuario[10] }}</span>
                   </span>
                 {% else %}
                   <span class="has-text-grey">-</span>
                 {% endif %}
               </td>
               <td>
-                {% if usuario[4] != 'pendiente' %}
-                  <button class="button is-small is-light" onclick="verObservaciones('{{ usuario[2] }}', `{{ usuario[10] or 'Sin observaciones registradas' }}`)">
+                {% if usuario[5] != 'pendiente' %}
+                  <button class="button is-small is-light" onclick="verObservaciones('{{ usuario[2] }}', `{{ usuario[11] or 'Sin observaciones registradas' }}`)">
                     <span class="icon">
                       <i class="fas fa-eye"></i>
                     </span>

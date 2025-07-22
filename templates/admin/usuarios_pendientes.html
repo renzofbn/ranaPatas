@@ -33,6 +33,7 @@
                 <th>Nombre</th>
                 <th>Usuario</th>
                 <th>Correo</th>
+                <th>DNI</th>
                 <th>Fecha Registro</th>
                 <th>Rol a Asignar</th>
                 <th>Acciones</th>
@@ -49,7 +50,10 @@
                 </td>
                 <td>{{ usuario[3] }}</td>
                 <td>
-                  <span class="fecha-local-registro" data-fecha-utc="{{ usuario[4].strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ usuario[4].strftime('%d/%m/%Y %H:%M') }}</span>
+                  <span class="tag is-primary">{{ usuario[4] }}</span>
+                </td>
+                <td>
+                  <span class="fecha-local-registro" data-fecha-utc="{{ usuario[5].strftime('%Y-%m-%dT%H:%M:%S') }}Z">{{ usuario[5].strftime('%d/%m/%Y %H:%M') }}</span>
                 </td>
                 <td>
                   <div class="select is-small">

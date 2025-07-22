@@ -141,13 +141,14 @@ def register():
         nombre = request.form['nombre']
         usuario = request.form['usuario']
         correo = request.form['correo']
+        dni = request.form['dni']  # Campo obligatorio
         sexo = request.form.get('sexo') or None  # Puede ser None si no se selecciona
         fecha_nacimiento = request.form.get('fecha_nacimiento') or None  # Puede ser None si no se proporciona
         contrasena = request.form['contrasena']
         confirmar_contrasena = request.form['confirmar_contrasena']
         
         # Validaciones básicas
-        if not nombre or not usuario or not correo or not contrasena or not confirmar_contrasena:
+        if not nombre or not usuario or not correo or not dni or not contrasena or not confirmar_contrasena:
             flash('Todos los campos son obligatorios', 'error')
             return render_template('auth/register.html')
         
@@ -165,6 +166,11 @@ def register():
         # Validar email
         if not validate_email(correo):
             flash('El formato del correo electrónico no es válido', 'error')
+            return render_template('auth/register.html')
+        
+        # Validar DNI peruano (obligatorio, exactamente 8 dígitos)
+        if not dni.isdigit() or len(dni) != 8:
+            flash('El DNI debe tener exactamente 8 dígitos numéricos', 'error')
             return render_template('auth/register.html')
         
         # Validar fecha de nacimiento (opcional, pero si se proporciona debe ser válida)
@@ -206,11 +212,18 @@ def register():
             cur = mysql.connection.cursor()
             
             # Verificar si el usuario ya existe
-            cur.execute("SELECT * FROM usuarios WHERE usuario = %s OR correo = %s", (usuario, correo))
+            cur.execute("SELECT * FROM usuarios WHERE usuario = %s OR correo = %s OR dni = %s", (usuario, correo, dni))
             existing_user = cur.fetchone()
             
             if existing_user:
-                flash('El usuario o correo ya existe', 'error')
+                if existing_user[2] == correo:  # Índice del correo en la consulta
+                    flash('El correo electrónico ya está registrado', 'error')
+                elif existing_user[1] == usuario:  # Índice del usuario en la consulta
+                    flash('El nombre de usuario ya existe', 'error')
+                elif existing_user[4] == dni:  # Índice del DNI en la consulta (después de correo)
+                    flash('El DNI ya está registrado', 'error')
+                else:
+                    flash('El usuario, correo o DNI ya existe', 'error')
                 cur.close()
                 return render_template('auth/register.html')
             
@@ -218,9 +231,9 @@ def register():
             hashed_password = hash_password(contrasena)
             
             # Insertar nuevo usuario con estado pendiente y rol por defecto (Usuario)
-            cur.execute("""INSERT INTO usuarios (nombre, usuario, correo, sexo, fecha_nacimiento, contrasena, estado_aprobacion, rol) 
-                           VALUES (%s, %s, %s, %s, %s, %s, 'pendiente', 1)""", 
-                       (nombre.strip(), usuario, correo, sexo, fecha_nacimiento, hashed_password))
+            cur.execute("""INSERT INTO usuarios (nombre, usuario, correo, dni, sexo, fecha_nacimiento, contrasena, estado_aprobacion, rol) 
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendiente', 1)""", 
+                       (nombre.strip(), usuario, correo, dni, sexo, fecha_nacimiento, hashed_password))
             mysql.connection.commit()
             
             # Crear notificación para administradores
@@ -276,7 +289,7 @@ def perfil():
         
         # Obtener información completa del usuario
         cur.execute("""
-            SELECT id, usuario, correo, nombre, isAdmin, fecha_registro, ultimo_login, rol, sexo, fecha_nacimiento
+            SELECT id, usuario, correo, nombre, isAdmin, fecha_registro, ultimo_login, rol, sexo, fecha_nacimiento, dni
             FROM usuarios 
             WHERE id = %s
         """, (current_user['id'],))
@@ -308,6 +321,7 @@ def perfil():
                 'rol': usuario_completo[7] or 1,
                 'sexo': usuario_completo[8],
                 'fecha_nacimiento': usuario_completo[9],
+                'dni': usuario_completo[10],
                 'total_participaciones': estadisticas[0] if estadisticas else 0,
                 'eventos_completados': estadisticas[1] if estadisticas else 0,
                 'eventos_en_progreso': estadisticas[2] if estadisticas else 0
@@ -320,11 +334,8 @@ def perfil():
             user['ultimo_login'] = None
             user['sexo'] = None
             user['fecha_nacimiento'] = None
+            user['dni'] = None
             user['rol'] = current_user.get('rol', 1)
-            user['total_participaciones'] = 0
-            user['eventos_completados'] = 0
-            user['eventos_en_progreso'] = 0
-            user['ultimo_login'] = None
             user['total_participaciones'] = 0
             user['eventos_completados'] = 0
             user['eventos_en_progreso'] = 0

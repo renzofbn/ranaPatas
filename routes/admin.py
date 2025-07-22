@@ -89,7 +89,7 @@ def usuarios_pendientes():
         cur = mysql.connection.cursor()
         
         cur.execute("""
-            SELECT id, nombre, usuario, correo, fecha_registro 
+            SELECT id, nombre, usuario, correo, dni, fecha_registro 
             FROM usuarios 
             WHERE estado_aprobacion = 'pendiente' 
             ORDER BY fecha_registro DESC
@@ -228,7 +228,7 @@ def todos_usuarios():
         cur = mysql.connection.cursor()
         
         cur.execute("""
-            SELECT u.id, u.nombre, u.usuario, u.correo, u.estado_aprobacion, 
+            SELECT u.id, u.nombre, u.usuario, u.correo, u.dni, u.estado_aprobacion, 
                    u.fecha_registro, u.fecha_aprobacion, u.isAdmin, u.rol,
                    admin.usuario as aprobado_por_usuario, u.observaciones_admin
             FROM usuarios u
